@@ -3,11 +3,6 @@ TheBridge is a Minecraft Java Server minigame plugin. Two teams (1v1 or 2v2) fig
 
 TheBridge is an independent plugin. It is not affiliated with Hypixel or any other server network.
 
-# Status (please read)
-- The Bukkit-free logic (arena state machine, scoring, teams, block tracking, arena validation) has automated unit tests that were run and passed (45 tests, JUnit 4).
-- The statistics database tests (`SQLiteStorageTest`) exist but were **not run** in the environment this was written in (no access to the SQLite driver there). They run during `mvn package` on your machine.
-- The full plugin was **not compiled against the Paper API and was not tested on a real server** in that environment. Run `mvn clean package` first and play-test one arena before using it on a public server. See [Manual test checklist](#manual-test-checklist).
-
 # Features
 >- 1v1 and 2v2 (any team size up to `match.max-team-size`)
 >- Multiple arenas, each saved in its own file
@@ -23,7 +18,7 @@ TheBridge is an independent plugin. It is not affiliated with Hypixel or any oth
 >- Permissions and tab completion
 
 # Installation
-1. Download the plugin jar (see [Releases](https://github.com/Kylan1940/TheBridge/releases)) or [build it yourself](#building)
+1. Download the plugin.
 2. Put it into the **plugins** folder
 3. Restart the server
 4. Create an arena (see [Arena setup](#arena-setup-example))
@@ -142,13 +137,6 @@ mvn clean package
 ```
 
 The plugin jar is `target/TheBridge-<version>.jar`. Tests run automatically; `mvn clean package -DskipTests` skips them.
-
-# GitHub release
-1. Change `<version>` in `pom.xml` (for example `1.0.0`) and commit
-2. `mvn clean package`
-3. Create a tag: `git tag 1.0.0 && git push origin 1.0.0`
-4. On GitHub: Releases → Draft a new release → choose the tag → attach `target/TheBridge-1.0.0.jar`
-5. Use the Modrinth/CurseForge texts in [`docs/`](docs) for the project pages
 
 # Manual test checklist
 Things that need a real server (not covered by the automated tests):
