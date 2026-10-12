@@ -1,0 +1,31 @@
+name: TheBridge
+version: '${project.version}'
+main: org.kylan1940.thebridge.TheBridge
+api-version: '1.21'
+author: Kylan1940
+description: A classic Bridge minigame with 1v1 and 2v2 arenas.
+
+commands:
+  thebridge:
+    description: TheBridge main command
+    usage: /thebridge help
+    aliases:
+      - tb
+      - bridge
+
+permissions:
+  thebridge.admin:
+    description: Create, edit, enable and delete arenas, stop matches and reload the plugin.
+    default: op
+  thebridge.join:
+    description: Join a Bridge arena.
+    default: true
+  thebridge.leave:
+    description: Leave the Bridge arena you are in.
+    default: true
+  thebridge.stats:
+    description: View Bridge statistics.
+    default: true
+  thebridge.bypass:
+    description: Build and break blocks inside arenas that are NOT running a match (for setup). Never applies to players inside a match.
+    default: op

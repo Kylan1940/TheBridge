@@ -1,0 +1,310 @@
+# ===========================================================================
+# THE BRIDGE
+# ===========================================================================
+# Report Plugin: https://github.com/Kylan1940/TheBridge/issues/new
+# ===========================================================================
+# Github: https://github.com/Kylan1940
+# Website: https://kylan1940.netlify.app
+# ===========================================================================
+
+# THEBRIDGE CONFIGURATION
+#
+# HELP:
+# - & for color and special symbols
+# - %prefix% for prefix
+# - A message can be one line ("text") or a list of lines
+# - Every other placeholder (%player%, %team%, ...) is explained at its message
+#
+# Arenas (spawns, goals, bounds, team size) are NOT stored here. Every arena has its
+# own file in plugins/TheBridge/arenas/. Create them in-game with /thebridge setup commands.
+
+# Config Version
+# DON'T CHANGE THIS!!!
+config-version: 1
+
+# Prefix:
+prefix: "&7[&bTheBridge&7] "
+
+# ---------------------------------------------------------------------------
+# Match rules
+# ---------------------------------------------------------------------------
+match:
+# Seconds of countdown once an arena is full (1 - 300)
+countdown: 10
+# Seconds of freeze before every round starts, also after a goal (0 - 60)
+round-countdown: 3
+# Maximum match length in seconds. When time is up, the team with more goals wins.
+# Equal goals = draw. (30 - 86400). Can be overridden per arena.
+duration: 900
+# Goals needed to win (1 - 100). Can be overridden per arena.
+score-limit: 5
+# Seconds a dead player waits (as spectator at their spawn) before coming back (0 - 60)
+respawn-delay: 3
+# Seconds the result is shown before players are sent back (1 - 120)
+ending-delay: 8
+# A fall into the void counts as a kill if an enemy hit the player within this many seconds (0 = off)
+kill-credit-seconds: 10
+# Biggest team size an admin may set with /thebridge teamsize (1 = 1v1, 2 = 2v2, 3 = 3v3, ...)
+max-team-size: 2
+# Can players hurt their own teammates?
+friendly-fire: false
+# TEST MODE FOR DEVELOPERS: the countdown starts with only ONE player, so you can test goals,
+# void, building and the reset alone. The player is team RED and scores in the BLUE goal.
+# Nothing is saved to the statistics and no rewards are given. Keep this false on a real server!
+solo-test: false
+# Commands players may still use during a match (/thebridge is always allowed).
+# Players with thebridge.admin may use every command.
+allowed-commands: []
+
+# ---------------------------------------------------------------------------
+# Building
+# ---------------------------------------------------------------------------
+build:
+# Only these blocks can be placed during a match. Write real block names (Material names).
+allowed-blocks:
+- RED_TERRACOTTA
+- BLUE_TERRACOTTA
+- WHITE_TERRACOTTA
+- SANDSTONE
+- OAK_PLANKS
+- STONE
+# true  = players can only break blocks that players placed in this match (the map itself is safe)
+# false = players can break every block inside the bounds (not recommended)
+break-only-placed: true
+# Nobody can build inside or next to the goals (stops goal blocking)
+protect-goals: true
+
+# ---------------------------------------------------------------------------
+# Goals
+# ---------------------------------------------------------------------------
+goal:
+# Extra blocks around each goal where building is not allowed (0 - 5).
+# Scoring itself always uses the exact goal region.
+margin: 0
+
+# ---------------------------------------------------------------------------
+# Arena reset
+# ---------------------------------------------------------------------------
+# Only blocks that players place or break are restored. Chest contents, signs,
+# entities (armor stands, paintings), water/lava flow and block updates are NOT
+# part of the restore. See README "Arena reset limitations".
+reset:
+# How many blocks are restored per server tick (10 - 20000). Lower = less lag, slower reset.
+blocks-per-tick: 500
+# true  = restore the bridges after every goal
+# false = bridges stay until the match is over
+after-score: false
+# Remove dropped items and arrows inside the arena after a match
+clear-entities: true
+# Seconds between saves of the crash-recovery file (1 - 300)
+journal-interval: 5
+
+# ---------------------------------------------------------------------------
+# Statistics (SQLite)
+# ---------------------------------------------------------------------------
+stats:
+enabled: true
+# File inside plugins/TheBridge/
+database-file: "stats.db"
+
+# ---------------------------------------------------------------------------
+# Rewards
+# ---------------------------------------------------------------------------
+# Console commands that run when a match ends. %player% is the player's name.
+rewards:
+enabled: false
+winner-commands:
+- "give %player% minecraft:diamond 1"
+loser-commands: []
+
+# ---------------------------------------------------------------------------
+# Effects
+# ---------------------------------------------------------------------------
+effects:
+titles: true
+action-bar: true
+sounds:
+enabled: true
+# Sound names look like in the vanilla game: https://minecraft.wiki/w/Sounds.json
+# Leave a sound empty ("") to switch only that sound off.
+countdown: "block.note_block.hat"
+round-start: "entity.experience_orb.pickup"
+start: "entity.ender_dragon.growl"
+goal: "entity.player.levelup"
+kill: "entity.arrow.hit_player"
+death: "entity.player.hurt"
+respawn: "entity.enderman.teleport"
+win: "ui.toast.challenge_complete"
+lose: "entity.villager.no"
+
+# ---------------------------------------------------------------------------
+# Starting equipment (given at the start of every round, after every death)
+# ---------------------------------------------------------------------------
+equipment:
+# Leather armor in the team colour
+armor:
+enabled: true
+dye-by-team: true
+# material: item name. {team} becomes RED or BLUE (RED_TERRACOTTA / BLUE_TERRACOTTA).
+# amount:   how many (max = stack size)
+# slot:     0-8 hotbar, 9-35 inventory, -1 = first free slot
+# unbreakable: true/false
+items:
+- material: IRON_SWORD
+amount: 1
+slot: 0
+unbreakable: true
+- material: BOW
+amount: 1
+slot: 1
+unbreakable: true
+- material: IRON_PICKAXE
+amount: 1
+slot: 2
+unbreakable: true
+- material: GOLDEN_APPLE
+amount: 8
+slot: 3
+- material: "{team}_TERRACOTTA"
+amount: 64
+slot: 4
+- material: "{team}_TERRACOTTA"
+amount: 64
+slot: 5
+- material: ARROW
+amount: 8
+slot: 8
+
+# ---------------------------------------------------------------------------
+# Messages
+# ---------------------------------------------------------------------------
+messages:
+no-permission: "%prefix%&cYou don't have permission to do that."
+player-only: "%prefix%&cThis command can only be used by a player."
+
+# %player% %players% %max%
+player-joined: "%prefix%&e%player% &7joined the match. &8(&f%players%&8/&f%max%&8)"
+player-left: "%prefix%&e%player% &7left the match. &8(&f%players%&8/&f%max%&8)"
+# %arena%
+left-match: "%prefix%&7You left arena &e%arena%&7."
+arena-full: "%prefix%&cThis arena is full."
+# Shown (action bar) when a block cannot be placed or broken
+cannot-build: "&cYou can't build here."
+arena-protected: "&cThis arena is protected."
+command-blocked: "%prefix%&cYou can't use that command during a match. Use &e/thebridge leave &cto leave."
+recovered: "%prefix%&7The server restarted during your match. Your items and position have been restored."
+
+# %seconds%
+countdown-started: "%prefix%&aThe arena is full! Starting in &e%seconds% &aseconds."
+countdown: "%prefix%&7Starting in &e%seconds%&7..."
+countdown-cancelled: "%prefix%&cA player left. The countdown was cancelled."
+# %team% %limit%
+match-started:
+- "%prefix%&aThe match has started! You are in team %team%&a."
+- "%prefix%&7First to &e%limit% &7goals wins. Enter the enemy goal to score!"
+match-cancelled: "%prefix%&cThe match was cancelled by an admin."
+time-up: "%prefix%&eTime is up!"
+# %team% = the winning team
+forfeit: "%prefix%&eAll opponents left. Team %team% &ewins!"
+
+# %seconds%
+round-countdown-title: "&e%seconds%"
+round-countdown-subtitle: "&7Get ready!"
+round-start-title: "&aGO!"
+round-start-subtitle: "&7Cross the bridge and score!"
+
+# %player% %team% %red% %blue%
+goal-scored: "%prefix%&e%player% &7scored for team %team%&7! &c%red% &7- &9%blue%"
+goal-title: "%team% &7scored!"
+goal-subtitle: "&e%player%"
+
+# %player% %killer%
+death: "%prefix%&e%player% &7died."
+death-by-player: "%prefix%&e%player% &7was killed by &e%killer%&7."
+# %seconds%
+respawn-title: "&cYou died"
+respawn-subtitle: "&7Respawning in %seconds%s"
+
+# Action bar during the match: %red% %blue% %limit% %time%
+actionbar: "&cRed &f%red% &8- &f%blue% &9Blue &8| &7First to &f%limit% &8| &e%time%"
+
+# %winner% %red% %blue% %goals% %kills% %deaths%
+match-end:
+- "&8&m                                    "
+- "&6&lMatch over! &7Winner: %winner%"
+- "&7Score: &c%red% &7- &9%blue%"
+- "&7Your goals: &e%goals% &8| &7Kills: &e%kills% &8| &7Deaths: &e%deaths%"
+- "&8&m                                    "
+draw-text: "&7Nobody (draw)"
+win-title: "&6&lVICTORY!"
+win-subtitle: "&7Your team won the match."
+lose-title: "&c&lDEFEAT"
+lose-subtitle: "&7Better luck next time."
+draw-title: "&e&lDRAW"
+draw-subtitle: "&7Nobody won."
+
+# Commands. Placeholders: %arena% %player% %error% %command% %label%
+usage: "%prefix%&cUsage: %command%"
+unknown-command: "%prefix%&cUnknown command. Use &e/thebridge help&c."
+unknown-arena: "%prefix%&cThere is no arena called &e%arena%&c."
+arena-exists: "%prefix%&cAn arena with that name already exists, or the name is invalid (letters, numbers, - and _ only, max 32)."
+arena-created: "%prefix%&aArena &e%arena% &acreated in world &e%world%&a. Next: &e/thebridge help &7(setup steps)"
+arena-deleted: "%prefix%&aArena &e%arena% &adeleted."
+arena-active: "%prefix%&cArena &e%arena% &cis in use. Use &e/thebridge disable %arena% &cfirst (this cancels the match safely) and wait until it is reset."
+arena-saved: "%prefix%&aSaved: &e%what%&a."
+arena-enabled: "%prefix%&aArena &e%arena% &ais now enabled."
+arena-disabled: "%prefix%&aArena &e%arena% &ais now disabled."
+arena-not-ready: "%prefix%&cArena &e%arena% &ccannot be enabled yet:"
+arena-problem: "&c - %error%"
+arena-must-be-disabled: "%prefix%&cDisable arena &e%arena% &cbefore you change it."
+need-selection: "%prefix%&cSelect two corners first with &e/thebridge pos1 &cand &e/thebridge pos2&c (same world as the arena)."
+pos-set: "%prefix%&aPosition %number% set to &e%location%&a."
+wrong-world: "%prefix%&cYou must be in the arena's world (&e%world%&c) to do that."
+invalid-number: "%prefix%&c'%value%' is not a valid number between %min% and %max%."
+invalid-team: "%prefix%&cTeam must be &ered &cor &eblue&c."
+stats-loading: "%prefix%&7Loading statistics..."
+stats-unavailable: "%prefix%&cStatistics are not available right now (disabled or the database has a problem)."
+stats-none: "%prefix%&e%player% &7has not played a Bridge match yet."
+# %player% %wins% %losses% %goals% %kills% %deaths% %matches% %streak% %best% %kd% %winrate%
+stats-format:
+- "&8&m                                    "
+- "&6&lBridge stats &7of &e%player%"
+- "&7Wins: &a%wins% &8| &7Losses: &c%losses% &8| &7Win rate: &f%winrate%%"
+- "&7Goals: &e%goals% &8| &7Kills: &e%kills% &8| &7Deaths: &e%deaths% &8| &7K/D: &f%kd%"
+- "&7Matches: &f%matches% &8| &7Win streak: &f%streak% &8(best &f%best%&8)"
+- "&8&m                                    "
+not-in-match: "%prefix%&cYou are not in a match."
+already-in-match: "%prefix%&cYou are already in a match. Use &e/thebridge leave &cfirst."
+arena-unavailable: "%prefix%&cArena &e%arena% &cis not available right now (disabled, resetting or running)."
+joined-arena: "%prefix%&aYou joined arena &e%arena%&a."
+match-stopped: "%prefix%&aThe match in arena &e%arena% &awas stopped."
+nothing-to-stop: "%prefix%&cArena &e%arena% &chas no match to stop."
+reloaded: "%prefix%&aConfiguration reloaded. Arena files are not reloaded; restart the server if you edited them by hand."
+no-arenas: "%prefix%&7There are no arenas yet."
+already-enabled: "%prefix%&cArena &e%arena% &cis already enabled."
+# %arena% %state% %mode% %players% %max%
+list-header: "%prefix%&6Arenas:"
+list-entry: "&8 - &e%arena% &8| &f%mode% &8| &7%state% &8| &f%players%/%max%"
+
+# /thebridge help (admins see both lists)
+help-player:
+- "&8&m                                    "
+- "&6&lTheBridge &7commands"
+- "&e/thebridge list &7- show all arenas"
+- "&e/thebridge join <arena> &7- join an arena"
+- "&e/thebridge leave &7- leave your match"
+- "&e/thebridge stats [player] &7- show statistics"
+help-admin:
+- "&6Setup (an arena must be disabled to change it):"
+- "&e/thebridge create <arena> &7- 1. create it in your world"
+- "&e/thebridge setlobby <arena> &7- 2. waiting room"
+- "&e/thebridge setspawn <arena> <red|blue> &7- 3. team spawns"
+- "&e/thebridge pos1 &7/ &e/thebridge pos2 &7- select a box"
+- "&e/thebridge setgoal <arena> <red|blue> &7- 4. goal = selected box"
+- "&e/thebridge setbounds <arena> &7- 5. arena = selected box (bottom = void)"
+- "&e/thebridge teamsize <arena> <n> &7- 1 = 1v1, 2 = 2v2"
+- "&e/thebridge scorelimit|duration <arena> <n> &7- per arena, 0 = config.yml"
+- "&e/thebridge enable|disable <arena> &7- 6. open / close it"
+- "&e/thebridge info|stop|delete <arena>"
+- "&e/thebridge reload"
+- "&8&m                                    "
