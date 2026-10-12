@@ -1,310 +1,199 @@
-# ===========================================================================
-# THE BRIDGE
-# ===========================================================================
-# Report Plugin: https://github.com/Kylan1940/TheBridge/issues/new
-# ===========================================================================
-# Github: https://github.com/Kylan1940
-# Website: https://kylan1940.netlify.app
-# ===========================================================================
+# Description
+TheBridge is a Minecraft Java Server minigame plugin. Two teams (1v1 or 2v2) fight on bridges over the void. Build blocks toward the enemy, fight, and score by entering the enemy goal. First team to the score limit wins. If you have a question, please make an [issue](https://github.com/Kylan1940/TheBridge/issues/new).
 
-# THEBRIDGE CONFIGURATION
-#
-# HELP:
-# - & for color and special symbols
-# - %prefix% for prefix
-# - A message can be one line ("text") or a list of lines
-# - Every other placeholder (%player%, %team%, ...) is explained at its message
-#
-# Arenas (spawns, goals, bounds, team size) are NOT stored here. Every arena has its
-# own file in plugins/TheBridge/arenas/. Create them in-game with /thebridge setup commands.
+TheBridge is an independent plugin. It is not affiliated with Hypixel or any other server network.
 
-# Config Version
-# DON'T CHANGE THIS!!!
-config-version: 1
+# Status (please read)
+- The Bukkit-free logic (arena state machine, scoring, teams, block tracking, arena validation) has automated unit tests that were run and passed (45 tests, JUnit 4).
+- The statistics database tests (`SQLiteStorageTest`) exist but were **not run** in the environment this was written in (no access to the SQLite driver there). They run during `mvn package` on your machine.
+- The full plugin was **not compiled against the Paper API and was not tested on a real server** in that environment. Run `mvn clean package` first and play-test one arena before using it on a public server. See [Manual test checklist](#manual-test-checklist).
 
-# Prefix:
-prefix: "&7[&bTheBridge&7] "
+# Features
+>- 1v1 and 2v2 (any team size up to `match.max-team-size`)
+>- Multiple arenas, each saved in its own file
+>- Arena states: `DISABLED`, `WAITING`, `STARTING`, `IN_GAME`, `ENDING`, `RESETTING`
+>- Setup validation with clear errors (an arena can't be enabled while something is missing)
+>- Goal detection without commands, duplicate-goal protection
+>- Respawn delay, void death, kill credit for void kills
+>- Configurable equipment, buildable blocks, break rules
+>- Arena reset: only changed blocks are tracked and restored in small batches
+>- Crash recovery for players (inventory, location, game mode ...) and for arena blocks
+>- SQLite statistics (wins, losses, goals, kills, deaths, matches, win streak), saved on a background thread
+>- Titles, action bar, sounds, optional console-command rewards
+>- Permissions and tab completion
 
-# ---------------------------------------------------------------------------
-# Match rules
-# ---------------------------------------------------------------------------
+# Installation
+1. Download the plugin jar (see [Releases](https://github.com/Kylan1940/TheBridge/releases)) or [build it yourself](#building)
+2. Put it into the **plugins** folder
+3. Restart the server
+4. Create an arena (see [Arena setup](#arena-setup-example))
+
+# Compatibility
+- Java **21** is required.
+- Built against **Paper API 1.21.8** with `api-version: 1.21`. The code uses only Bukkit/Paper API (no NMS), so other Paper-based servers (Purpur, Pufferfish ...) are expected to work. Spigot is **not** a declared target because the plugin uses Paper's Adventure API.
+- **Folia is not supported.** TheBridge uses the normal Bukkit scheduler and does not declare `folia-supported`.
+- Only 1.21.x was considered. Nothing has been tested on a server yet, so no version is "verified". Please report what works for you.
+
+# Commands
+Main command: `/thebridge` (aliases: `/tb`, `/bridge`)
+
+| Command                                  | Description                                                   | Permission        |
+|------------------------------------------|---------------------------------------------------------------|-------------------|
+| `/thebridge help`                        | Show the commands                                             | none              |
+| `/thebridge list`                        | List arenas with state and players                            | `thebridge.join`  |
+| `/thebridge join <arena>`                | Join an arena                                                 | `thebridge.join`  |
+| `/thebridge leave`                       | Leave your match                                              | `thebridge.leave` |
+| `/thebridge stats [player]`              | Show statistics                                               | `thebridge.stats` |
+| `/thebridge create <arena>`              | Create an arena in your current world                         | `thebridge.admin` |
+| `/thebridge setlobby <arena>`            | Set the waiting room to your position                         | `thebridge.admin` |
+| `/thebridge setspawn <arena> <red\|blue>` | Set a team spawn to your position                             | `thebridge.admin` |
+| `/thebridge pos1` / `pos2`               | Select two corners (used by `setgoal` and `setbounds`)        | `thebridge.admin` |
+| `/thebridge setgoal <arena> <red\|blue>`  | Set the goal that team **defends** = the selected box         | `thebridge.admin` |
+| `/thebridge setbounds <arena>`           | Set the arena box = the selected box (its bottom is the void) | `thebridge.admin` |
+| `/thebridge teamsize <arena> <n>`        | 1 = 1v1, 2 = 2v2 ...                                          | `thebridge.admin` |
+| `/thebridge scorelimit <arena> <n>`      | Goals to win for this arena (0 = use config.yml)              | `thebridge.admin` |
+| `/thebridge duration <arena> <seconds>`  | Match length for this arena (0 = use config.yml)              | `thebridge.admin` |
+| `/thebridge enable <arena>`              | Validate and open the arena                                   | `thebridge.admin` |
+| `/thebridge disable <arena>`             | Close the arena (safely cancels a running match)              | `thebridge.admin` |
+| `/thebridge stop <arena>`                | Cancel the running match (no winner, no stats)                | `thebridge.admin` |
+| `/thebridge info <arena>`                | Show the arena setup and any problems                         | `thebridge.admin` |
+| `/thebridge delete <arena>`              | Delete a disabled arena                                       | `thebridge.admin` |
+| `/thebridge reload`                      | Reload config.yml (not the arena files)                       | `thebridge.admin` |
+
+Differences from the first draft: `pos1`/`pos2`, `teamsize`, `scorelimit`, `duration` and `stop` were added, because goals and bounds are boxes and need two corners. Setup commands only work while the arena is **disabled**, so spawns can't change under running players.
+
+# Permissions
+| Permission         | Default | Purpose                                                                                                                                                              |
+|--------------------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `thebridge.admin`  | OP      | All setup/management commands. Also allows any command during a match.                                                                                               |
+| `thebridge.join`   | true    | Join arenas and list them.                                                                                                                                           |
+| `thebridge.leave`  | true    | Leave a match.                                                                                                                                                       |
+| `thebridge.stats`  | true    | View statistics.                                                                                                                                                     |
+| `thebridge.bypass` | OP      | Build/break inside an arena that is **empty and waiting** (for editing the map). It never works for players in a match or inside an arena with a match, on purpose. |
+
+# Arena setup example
+Build your map first (two islands, a void in between, a goal on each side). Then, standing in the map's world:
+
+```
+/thebridge create lava
+/thebridge setlobby lava              (stand in the waiting room)
+/thebridge setspawn lava red          (stand on the red spawn)
+/thebridge setspawn lava blue
+/thebridge pos1                       (stand in one corner of the RED goal)
+/thebridge pos2                       (stand in the opposite corner)
+/thebridge setgoal lava red           (red DEFENDS this goal, blue scores here)
+/thebridge pos1                       (corners of the BLUE goal)
+/thebridge pos2
+/thebridge setgoal lava blue
+/thebridge pos1                       (a box around the WHOLE arena, from the void level up to above the highest build height)
+/thebridge pos2
+/thebridge setbounds lava
+/thebridge teamsize lava 1            (1v1; use 2 for 2v2)
+/thebridge enable lava
+```
+
+If something is missing, `enable` tells you exactly what. Players then use `/thebridge join lava`. The match starts when the arena is full.
+
+**Rules of thumb:** the bottom of the bounds is the void: falling below it is a death. Spawns must be inside the bounds and not inside a goal. The lobby can be anywhere.
+
+# Testing alone (solo test mode)
+No friend or second account? Set this in `config.yml` and run `/thebridge reload`:
+
+```yaml
 match:
-# Seconds of countdown once an arena is full (1 - 300)
-countdown: 10
-# Seconds of freeze before every round starts, also after a goal (0 - 60)
-round-countdown: 3
-# Maximum match length in seconds. When time is up, the team with more goals wins.
-# Equal goals = draw. (30 - 86400). Can be overridden per arena.
-duration: 900
-# Goals needed to win (1 - 100). Can be overridden per arena.
-score-limit: 5
-# Seconds a dead player waits (as spectator at their spawn) before coming back (0 - 60)
-respawn-delay: 3
-# Seconds the result is shown before players are sent back (1 - 120)
-ending-delay: 8
-# A fall into the void counts as a kill if an enemy hit the player within this many seconds (0 = off)
-kill-credit-seconds: 10
-# Biggest team size an admin may set with /thebridge teamsize (1 = 1v1, 2 = 2v2, 3 = 3v3, ...)
-max-team-size: 2
-# Can players hurt their own teammates?
-friendly-fire: false
-# TEST MODE FOR DEVELOPERS: the countdown starts with only ONE player, so you can test goals,
-# void, building and the reset alone. The player is team RED and scores in the BLUE goal.
-# Nothing is saved to the statistics and no rewards are given. Keep this false on a real server!
-solo-test: false
-# Commands players may still use during a match (/thebridge is always allowed).
-# Players with thebridge.admin may use every command.
-allowed-commands: []
+  solo-test: true
+```
 
-# ---------------------------------------------------------------------------
+Then join an arena alone: the countdown starts with one player. You are team RED and score by entering the **blue** goal. You can test the countdown, goals, void deaths, building rules, bridge reset and the end of the match. You can **not** test fighting, kills and forfeits (that needs an opponent).
+Matches in solo test mode never write to the statistics and never give rewards. The setting is read when a player joins an empty arena, so switch it on or off while no match is waiting. **Turn it off again on a real server.**
+To test with two players on your own PC you can also run a second client with an offline account on a local server (`online-mode=false`).
+
+# Match flow
+1. Players join; when the arena is full a countdown starts (`match.countdown`).
+2. Teams are assigned, players are teleported and equipped, a short freeze (`match.round-countdown`) starts every round.
+3. Entering the **enemy** goal scores one point. Players and (optionally) bridges are reset.
+4. The match ends at `match.score-limit` goals, or when `match.duration` runs out (more goals wins, equal goals = draw).
+5. Results are shown, players get their old inventory and position back, the arena resets and opens again.
+
+Leaving or disconnecting mid-match counts as leaving: you get your own items back immediately, and if a team has nobody left the other team wins. Rejoining the **match** is not supported. Rejoining the **server** after a crash restores your items and position.
+
+# Configuration
+Everything is in `plugins/TheBridge/config.yml` (documented inside the file): countdown, duration, score limit, respawn delay, team size limit, allowed blocks, break rules, equipment (`{team}` becomes RED/BLUE), reset behaviour, statistics, rewards, effects and all messages. Invalid numbers are corrected with a warning in the console. Per-arena values live in `plugins/TheBridge/arenas/<name>.yml`.
+
+When a new plugin version needs a newer `config-version`, your old file is renamed to `config-<version>.yml` and a fresh one is written (same as in my other plugins).
+
+# Arena reset limitations
+The reset restores the **type and block state** (rotation, waterlogged, ...) of every block a player placed or broke, a few hundred per tick. It does **not** restore:
+- items inside containers (players can't open containers in a match),
+- entities other than dropped items and arrows (those are removed),
+- sand/gravel falling, redstone, TNT chains, changes by other plugins or commands. Don't put gravity blocks or redstone in `build.allowed-blocks`,
+- fluids: buckets are blocked and liquid flow is cancelled inside arenas.
+
+Crash safety: the list of changed blocks is saved to `plugins/TheBridge/journals/` every `reset.journal-interval` seconds. After a crash the arena is restored from it on the next start. Blocks changed in the last few seconds before a crash can be missed.
+
+# Statistics
+SQLite file `plugins/TheBridge/stats.db`. All database work runs on one background thread, so the server never waits for the disk. A database problem is logged and never stops a match. The storage code is behind the `Storage` interface so MySQL/MariaDB can be added later; only SQLite exists now.
+
 # Building
-# ---------------------------------------------------------------------------
-build:
-# Only these blocks can be placed during a match. Write real block names (Material names).
-allowed-blocks:
-- RED_TERRACOTTA
-- BLUE_TERRACOTTA
-- WHITE_TERRACOTTA
-- SANDSTONE
-- OAK_PLANKS
-- STONE
-# true  = players can only break blocks that players placed in this match (the map itself is safe)
-# false = players can break every block inside the bounds (not recommended)
-break-only-placed: true
-# Nobody can build inside or next to the goals (stops goal blocking)
-protect-goals: true
+Requirements: JDK 21 and Maven.
 
-# ---------------------------------------------------------------------------
-# Goals
-# ---------------------------------------------------------------------------
-goal:
-# Extra blocks around each goal where building is not allowed (0 - 5).
-# Scoring itself always uses the exact goal region.
-margin: 0
+```
+mvn clean package
+```
 
-# ---------------------------------------------------------------------------
-# Arena reset
-# ---------------------------------------------------------------------------
-# Only blocks that players place or break are restored. Chest contents, signs,
-# entities (armor stands, paintings), water/lava flow and block updates are NOT
-# part of the restore. See README "Arena reset limitations".
-reset:
-# How many blocks are restored per server tick (10 - 20000). Lower = less lag, slower reset.
-blocks-per-tick: 500
-# true  = restore the bridges after every goal
-# false = bridges stay until the match is over
-after-score: false
-# Remove dropped items and arrows inside the arena after a match
-clear-entities: true
-# Seconds between saves of the crash-recovery file (1 - 300)
-journal-interval: 5
+The plugin jar is `target/TheBridge-<version>.jar`. Tests run automatically; `mvn clean package -DskipTests` skips them.
 
-# ---------------------------------------------------------------------------
-# Statistics (SQLite)
-# ---------------------------------------------------------------------------
-stats:
-enabled: true
-# File inside plugins/TheBridge/
-database-file: "stats.db"
+# GitHub release
+1. Change `<version>` in `pom.xml` (for example `1.0.0`) and commit
+2. `mvn clean package`
+3. Create a tag: `git tag 1.0.0 && git push origin 1.0.0`
+4. On GitHub: Releases → Draft a new release → choose the tag → attach `target/TheBridge-1.0.0.jar`
+5. Use the Modrinth/CurseForge texts in [`docs/`](docs) for the project pages
 
-# ---------------------------------------------------------------------------
-# Rewards
-# ---------------------------------------------------------------------------
-# Console commands that run when a match ends. %player% is the player's name.
-rewards:
-enabled: false
-winner-commands:
-- "give %player% minecraft:diamond 1"
-loser-commands: []
+# Manual test checklist
+Things that need a real server (not covered by the automated tests):
+- [ ] Plugin enables without errors, `/thebridge help` works
+- [ ] Setup of a 1v1 arena as above, `enable` accepts it
+- [ ] Two players: countdown, teleport, equipment, frozen start
+- [ ] Scoring in the enemy goal, no score in your own goal, no double score
+- [ ] Death by player, by void; respawn delay; kill credit for a void kill
+- [ ] Place and break blocks: only allowed blocks, only inside the bounds, goals protected
+- [ ] End of match: results, inventory/position restored, bridges removed
+- [ ] `/thebridge leave` and quitting in each state (waiting, countdown, running, ending)
+- [ ] `/thebridge disable` during a running match; `/stop` and plugin disable in the middle of a match
+- [ ] Kill the server process in a match, restart: arena restored, player gets items back on join
+- [ ] 2v2 with a teammate leaving
+- [ ] `match.solo-test: true`: one player can start a match and no stats are written
+- [ ] `/thebridge stats` after a match
 
-# ---------------------------------------------------------------------------
-# Effects
-# ---------------------------------------------------------------------------
-effects:
-titles: true
-action-bar: true
-sounds:
-enabled: true
-# Sound names look like in the vanilla game: https://minecraft.wiki/w/Sounds.json
-# Leave a sound empty ("") to switch only that sound off.
-countdown: "block.note_block.hat"
-round-start: "entity.experience_orb.pickup"
-start: "entity.ender_dragon.growl"
-goal: "entity.player.levelup"
-kill: "entity.arrow.hit_player"
-death: "entity.player.hurt"
-respawn: "entity.enderman.teleport"
-win: "ui.toast.challenge_complete"
-lose: "entity.villager.no"
+# Troubleshooting
+| Problem                                   | What to check                                                                                                 |
+|-------------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| `enable` lists problems                   | Fix each line; `/thebridge info <arena>` shows the same list                                                  |
+| "World ... is not loaded"                 | The arena's world must be loaded before TheBridge enables (world plugins: load them first)                    |
+| "Arena stays disabled" in the console     | Same list as above, logged at startup                                                                         |
+| Players can't place blocks                | The block must be in `build.allowed-blocks`, inside the bounds, outside the goals and the round must be running |
+| Goal doesn't count                        | You must enter the goal of the **other** team, and the goal box must be inside the bounds                     |
+| Players die instantly                     | The bottom of `setbounds` is the void. Make sure it is below your islands                                     |
+| Stats say "not available"                 | `stats.enabled: true`? Look for a `SQLite` error in the console                                               |
+| Bridges not removed                       | Check the console for "Cannot restore a block" (world unloaded), see limitations above                        |
 
-# ---------------------------------------------------------------------------
-# Starting equipment (given at the start of every round, after every death)
-# ---------------------------------------------------------------------------
-equipment:
-# Leather armor in the team colour
-armor:
-enabled: true
-dye-by-team: true
-# material: item name. {team} becomes RED or BLUE (RED_TERRACOTTA / BLUE_TERRACOTTA).
-# amount:   how many (max = stack size)
-# slot:     0-8 hotbar, 9-35 inventory, -1 = first free slot
-# unbreakable: true/false
-items:
-- material: IRON_SWORD
-amount: 1
-slot: 0
-unbreakable: true
-- material: BOW
-amount: 1
-slot: 1
-unbreakable: true
-- material: IRON_PICKAXE
-amount: 1
-slot: 2
-unbreakable: true
-- material: GOLDEN_APPLE
-amount: 8
-slot: 3
-- material: "{team}_TERRACOTTA"
-amount: 64
-slot: 4
-- material: "{team}_TERRACOTTA"
-amount: 64
-slot: 5
-- material: ARROW
-amount: 8
-slot: 8
+# Project structure
+```
+org.kylan1940.thebridge
+  TheBridge              main class: creates everything, wires it together
+  arena/                 Arena (data + validation), ArenaState, ArenaManager (save/load), Point, Region
+  match/                 Match (the rules of ONE match), MatchManager (runs matches), MatchTeam
+  player/                PlayerSnapshot (save/restore a player), EquipmentGiver (kits)
+  reset/                 BlockTracker (what changed), ArenaResetter (puts it back), BlockKey
+  stats/                 StatsManager (background thread), PlayerStats, PlayerResult, MatchRecord
+  storage/               Storage (interface), SQLiteStorage, StorageException
+  command/               BridgeCommand, BridgeTabCompleter
+  listener/              BlockListener (building), PlayerListener (moving, damage, quitting)
+  config/                GameSettings (checked numbers from config.yml)
+  message/               MessageUtil (messages, titles, sounds)
+  utils/                 ConfigUpdater, LocationUtil
+```
 
-# ---------------------------------------------------------------------------
-# Messages
-# ---------------------------------------------------------------------------
-messages:
-no-permission: "%prefix%&cYou don't have permission to do that."
-player-only: "%prefix%&cThis command can only be used by a player."
-
-# %player% %players% %max%
-player-joined: "%prefix%&e%player% &7joined the match. &8(&f%players%&8/&f%max%&8)"
-player-left: "%prefix%&e%player% &7left the match. &8(&f%players%&8/&f%max%&8)"
-# %arena%
-left-match: "%prefix%&7You left arena &e%arena%&7."
-arena-full: "%prefix%&cThis arena is full."
-# Shown (action bar) when a block cannot be placed or broken
-cannot-build: "&cYou can't build here."
-arena-protected: "&cThis arena is protected."
-command-blocked: "%prefix%&cYou can't use that command during a match. Use &e/thebridge leave &cto leave."
-recovered: "%prefix%&7The server restarted during your match. Your items and position have been restored."
-
-# %seconds%
-countdown-started: "%prefix%&aThe arena is full! Starting in &e%seconds% &aseconds."
-countdown: "%prefix%&7Starting in &e%seconds%&7..."
-countdown-cancelled: "%prefix%&cA player left. The countdown was cancelled."
-# %team% %limit%
-match-started:
-- "%prefix%&aThe match has started! You are in team %team%&a."
-- "%prefix%&7First to &e%limit% &7goals wins. Enter the enemy goal to score!"
-match-cancelled: "%prefix%&cThe match was cancelled by an admin."
-time-up: "%prefix%&eTime is up!"
-# %team% = the winning team
-forfeit: "%prefix%&eAll opponents left. Team %team% &ewins!"
-
-# %seconds%
-round-countdown-title: "&e%seconds%"
-round-countdown-subtitle: "&7Get ready!"
-round-start-title: "&aGO!"
-round-start-subtitle: "&7Cross the bridge and score!"
-
-# %player% %team% %red% %blue%
-goal-scored: "%prefix%&e%player% &7scored for team %team%&7! &c%red% &7- &9%blue%"
-goal-title: "%team% &7scored!"
-goal-subtitle: "&e%player%"
-
-# %player% %killer%
-death: "%prefix%&e%player% &7died."
-death-by-player: "%prefix%&e%player% &7was killed by &e%killer%&7."
-# %seconds%
-respawn-title: "&cYou died"
-respawn-subtitle: "&7Respawning in %seconds%s"
-
-# Action bar during the match: %red% %blue% %limit% %time%
-actionbar: "&cRed &f%red% &8- &f%blue% &9Blue &8| &7First to &f%limit% &8| &e%time%"
-
-# %winner% %red% %blue% %goals% %kills% %deaths%
-match-end:
-- "&8&m                                    "
-- "&6&lMatch over! &7Winner: %winner%"
-- "&7Score: &c%red% &7- &9%blue%"
-- "&7Your goals: &e%goals% &8| &7Kills: &e%kills% &8| &7Deaths: &e%deaths%"
-- "&8&m                                    "
-draw-text: "&7Nobody (draw)"
-win-title: "&6&lVICTORY!"
-win-subtitle: "&7Your team won the match."
-lose-title: "&c&lDEFEAT"
-lose-subtitle: "&7Better luck next time."
-draw-title: "&e&lDRAW"
-draw-subtitle: "&7Nobody won."
-
-# Commands. Placeholders: %arena% %player% %error% %command% %label%
-usage: "%prefix%&cUsage: %command%"
-unknown-command: "%prefix%&cUnknown command. Use &e/thebridge help&c."
-unknown-arena: "%prefix%&cThere is no arena called &e%arena%&c."
-arena-exists: "%prefix%&cAn arena with that name already exists, or the name is invalid (letters, numbers, - and _ only, max 32)."
-arena-created: "%prefix%&aArena &e%arena% &acreated in world &e%world%&a. Next: &e/thebridge help &7(setup steps)"
-arena-deleted: "%prefix%&aArena &e%arena% &adeleted."
-arena-active: "%prefix%&cArena &e%arena% &cis in use. Use &e/thebridge disable %arena% &cfirst (this cancels the match safely) and wait until it is reset."
-arena-saved: "%prefix%&aSaved: &e%what%&a."
-arena-enabled: "%prefix%&aArena &e%arena% &ais now enabled."
-arena-disabled: "%prefix%&aArena &e%arena% &ais now disabled."
-arena-not-ready: "%prefix%&cArena &e%arena% &ccannot be enabled yet:"
-arena-problem: "&c - %error%"
-arena-must-be-disabled: "%prefix%&cDisable arena &e%arena% &cbefore you change it."
-need-selection: "%prefix%&cSelect two corners first with &e/thebridge pos1 &cand &e/thebridge pos2&c (same world as the arena)."
-pos-set: "%prefix%&aPosition %number% set to &e%location%&a."
-wrong-world: "%prefix%&cYou must be in the arena's world (&e%world%&c) to do that."
-invalid-number: "%prefix%&c'%value%' is not a valid number between %min% and %max%."
-invalid-team: "%prefix%&cTeam must be &ered &cor &eblue&c."
-stats-loading: "%prefix%&7Loading statistics..."
-stats-unavailable: "%prefix%&cStatistics are not available right now (disabled or the database has a problem)."
-stats-none: "%prefix%&e%player% &7has not played a Bridge match yet."
-# %player% %wins% %losses% %goals% %kills% %deaths% %matches% %streak% %best% %kd% %winrate%
-stats-format:
-- "&8&m                                    "
-- "&6&lBridge stats &7of &e%player%"
-- "&7Wins: &a%wins% &8| &7Losses: &c%losses% &8| &7Win rate: &f%winrate%%"
-- "&7Goals: &e%goals% &8| &7Kills: &e%kills% &8| &7Deaths: &e%deaths% &8| &7K/D: &f%kd%"
-- "&7Matches: &f%matches% &8| &7Win streak: &f%streak% &8(best &f%best%&8)"
-- "&8&m                                    "
-not-in-match: "%prefix%&cYou are not in a match."
-already-in-match: "%prefix%&cYou are already in a match. Use &e/thebridge leave &cfirst."
-arena-unavailable: "%prefix%&cArena &e%arena% &cis not available right now (disabled, resetting or running)."
-joined-arena: "%prefix%&aYou joined arena &e%arena%&a."
-match-stopped: "%prefix%&aThe match in arena &e%arena% &awas stopped."
-nothing-to-stop: "%prefix%&cArena &e%arena% &chas no match to stop."
-reloaded: "%prefix%&aConfiguration reloaded. Arena files are not reloaded; restart the server if you edited them by hand."
-no-arenas: "%prefix%&7There are no arenas yet."
-already-enabled: "%prefix%&cArena &e%arena% &cis already enabled."
-# %arena% %state% %mode% %players% %max%
-list-header: "%prefix%&6Arenas:"
-list-entry: "&8 - &e%arena% &8| &f%mode% &8| &7%state% &8| &f%players%/%max%"
-
-# /thebridge help (admins see both lists)
-help-player:
-- "&8&m                                    "
-- "&6&lTheBridge &7commands"
-- "&e/thebridge list &7- show all arenas"
-- "&e/thebridge join <arena> &7- join an arena"
-- "&e/thebridge leave &7- leave your match"
-- "&e/thebridge stats [player] &7- show statistics"
-help-admin:
-- "&6Setup (an arena must be disabled to change it):"
-- "&e/thebridge create <arena> &7- 1. create it in your world"
-- "&e/thebridge setlobby <arena> &7- 2. waiting room"
-- "&e/thebridge setspawn <arena> <red|blue> &7- 3. team spawns"
-- "&e/thebridge pos1 &7/ &e/thebridge pos2 &7- select a box"
-- "&e/thebridge setgoal <arena> <red|blue> &7- 4. goal = selected box"
-- "&e/thebridge setbounds <arena> &7- 5. arena = selected box (bottom = void)"
-- "&e/thebridge teamsize <arena> <n> &7- 1 = 1v1, 2 = 2v2"
-- "&e/thebridge scorelimit|duration <arena> <n> &7- per arena, 0 = config.yml"
-- "&e/thebridge enable|disable <arena> &7- 6. open / close it"
-- "&e/thebridge info|stop|delete <arena>"
-- "&e/thebridge reload"
-- "&8&m                                    "
+# License
+Apache License 2.0, see [LICENSE](LICENSE).
