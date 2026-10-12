@@ -5,7 +5,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 import org.kylan1940.thebridge.TheBridge;
 import org.kylan1940.thebridge.arena.Arena;
 import org.kylan1940.thebridge.arena.ArenaManager;
@@ -61,10 +60,10 @@ public class BridgeCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(
-            @NotNull CommandSender sender,
-            @NotNull Command command,
-            @NotNull String label,
-            @NotNull String[] args
+            CommandSender sender,
+            Command command,
+            String label,
+            String[] args
     ) {
 
         if (args.length == 0) {

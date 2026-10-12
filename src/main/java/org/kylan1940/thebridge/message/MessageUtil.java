@@ -1,14 +1,13 @@
 package org.kylan1940.thebridge.message;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.kyori.adventure.title.Title;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.ChatColor;
 import org.bukkit.SoundCategory;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.kylan1940.thebridge.TheBridge;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 
@@ -20,12 +19,10 @@ import java.util.List;
  * Text may use & colour codes, %prefix% and the placeholders you pass in pairs.
  * A path may be a single string or a list of lines.
  *
- * Difference from your other plugins: the text is turned into an Adventure Component
- * (the modern Paper way) instead of a legacy String.
+ * Only API that exists on Spigot, CraftBukkit and Paper is used (no Adventure), so the plugin
+ * runs on all of them. Titles use sendTitle(), the action bar uses the BungeeCord chat API.
  */
 public final class MessageUtil {
-
-    private static final LegacyComponentSerializer COLORS = LegacyComponentSerializer.legacyAmpersand();
 
     private MessageUtil() {
     }
@@ -63,15 +60,11 @@ public final class MessageUtil {
         if (!TheBridge.getInstance().getConfig().getBoolean("effects.titles", true)) {
             return;
         }
-        Component title = color(getFirstLine(titlePath, placeholders));
-        Component subtitle = color(getFirstLine(subtitlePath, placeholders));
+        String title = color(getFirstLine(titlePath, placeholders));
+        String subtitle = color(getFirstLine(subtitlePath, placeholders));
 
-        Title.Times times = Title.Times.times(
-                Duration.ofMillis(200),
-                Duration.ofMillis(1200),
-                Duration.ofMillis(300)
-        );
-        player.showTitle(Title.title(title, subtitle, times));
+        // fade in 4 ticks, stay 24 ticks, fade out 6 ticks
+        player.sendTitle(title, subtitle, 4, 24, 6);
     }
 
     public static void actionBar(Player player, String path, String... placeholders) {
@@ -80,7 +73,7 @@ public final class MessageUtil {
         }
         String text = getFirstLine(path, placeholders);
         if (!text.isEmpty()) {
-            player.sendActionBar(color(text));
+            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(color(text)));
         }
     }
 
@@ -137,7 +130,7 @@ public final class MessageUtil {
         return message;
     }
 
-    private static Component color(String message) {
-        return COLORS.deserialize(message);
+    private static String color(String message) {
+        return ChatColor.translateAlternateColorCodes('&', message);
     }
 }

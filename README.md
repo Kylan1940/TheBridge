@@ -15,6 +15,7 @@ TheBridge is an independent plugin. It is not affiliated with Hypixel or any oth
 >- Crash recovery for players (inventory, location, game mode ...) and for arena blocks
 >- SQLite statistics (wins, losses, goals, kills, deaths, matches, win streak), saved on a background thread
 >- Titles, action bar, sounds, optional console-command rewards
+>- Runs on Spigot, CraftBukkit, Paper and Paper forks (Purpur, Pufferfish, Leaves)
 >- Permissions and tab completion
 
 # Installation
@@ -24,10 +25,15 @@ TheBridge is an independent plugin. It is not affiliated with Hypixel or any oth
 4. Create an arena (see [Arena setup](#arena-setup-example))
 
 # Compatibility
-- Java **21** is required.
-- Built against **Paper API 1.21.8** with `api-version: 1.21`. The code uses only Bukkit/Paper API (no NMS), so other Paper-based servers (Purpur, Pufferfish ...) are expected to work. Spigot is **not** a declared target because the plugin uses Paper's Adventure API.
-- **Folia is not supported.** TheBridge uses the normal Bukkit scheduler and does not declare `folia-supported`.
-- Only 1.21.x was considered. Nothing has been tested on a server yet, so no version is "verified". Please report what works for you.
+- The plugin is compiled against the **Spigot API 1.21.8** (`api-version: 1.21`) and uses no NMS, no Paper-only methods and no Adventure. Messages use `&` colour codes, titles use `sendTitle`, the action bar uses the BungeeCord chat API that Spigot ships.
+
+| Server software                         | Expected to work? | Notes                                                                                   |
+|-----------------------------------------|-------------------|-----------------------------------------------------------------------------------------|
+| Paper, Purpur, Pufferfish, Leaves       | Yes               | They contain the Spigot API.                                                            |
+| Spigot, CraftBukkit                     | Yes               | CraftBukkit has the same Bukkit API. Spigot-only parts used: the BungeeCord chat API for the action bar and `player.spigot().respawn()`. A pure CraftBukkit build without the Spigot additions would lack these two. |
+| Folia                                   | **No**            | TheBridge uses the normal Bukkit scheduler and does not declare `folia-supported`.      |
+
+- "Expected" means the code only calls API that exists there. **None of these servers has been tested yet** (see Status). Only Minecraft 1.21.x was considered. Please report what works for you.
 
 # Commands
 Main command: `/thebridge` (aliases: `/tb`, `/bridge`)
@@ -128,15 +134,6 @@ Crash safety: the list of changed blocks is saved to `plugins/TheBridge/journals
 
 # Statistics
 SQLite file `plugins/TheBridge/stats.db`. All database work runs on one background thread, so the server never waits for the disk. A database problem is logged and never stops a match. The storage code is behind the `Storage` interface so MySQL/MariaDB can be added later; only SQLite exists now.
-
-# Building
-Requirements: JDK 21 and Maven.
-
-```
-mvn clean package
-```
-
-The plugin jar is `target/TheBridge-<version>.jar`. Tests run automatically; `mvn clean package -DskipTests` skips them.
 
 # Manual test checklist
 Things that need a real server (not covered by the automated tests):

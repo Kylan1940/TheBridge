@@ -197,7 +197,7 @@ public class PlayerListener implements Listener {
         event.setDroppedExp(0);
         event.setKeepInventory(true);
         event.setKeepLevel(true);
-        event.deathMessage(null);
+        event.setDeathMessage(null);
 
         Player killer = matchManager.findKiller(player);
         Bukkit.getScheduler().runTask(plugin, () -> {

@@ -65,11 +65,13 @@
     </repositories>
 
     <dependencies>
-        <!-- Paper API. The server provides it (and the SQLite driver) at runtime. -->
+        <!-- Paper API (it contains the Spigot API). The code only uses API that also exists on Spigot and
+             CraftBukkit (no Adventure, no Paper-only methods), so the plugin runs on those servers too.
+             The server provides the API and the SQLite driver at runtime. -->
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21.8-R0.1-SNAPSHOT</version>
+            <version>1.21-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 

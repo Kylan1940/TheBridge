@@ -5,7 +5,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 import org.kylan1940.thebridge.TheBridge;
 import org.kylan1940.thebridge.arena.ArenaManager;
 
@@ -33,10 +32,10 @@ public class BridgeTabCompleter implements TabCompleter {
 
     @Override
     public List<String> onTabComplete(
-            @NotNull CommandSender sender,
-            @NotNull Command command,
-            @NotNull String alias,
-            @NotNull String[] args
+            CommandSender sender,
+            Command command,
+            String alias,
+            String[] args
     ) {
 
         if (args.length == 1) {
