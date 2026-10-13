@@ -20,10 +20,6 @@ import org.kylan1940.thebridge.utils.ConfigUpdater;
 
 import java.util.List;
 
-/**
- * The main class only wires everything together (create the objects, register commands
- * and listeners) and shuts everything down again. The real work is done by the managers.
- */
 public final class TheBridge extends JavaPlugin {
 
     private static TheBridge instance;
@@ -65,8 +61,6 @@ public final class TheBridge extends JavaPlugin {
         getCommand("thebridge").setExecutor(new BridgeCommand(this, arenaManager, matchManager, statsManager));
         getCommand("thebridge").setTabCompleter(new BridgeTabCompleter(this, arenaManager));
 
-        // Wait one tick: by then every other plugin (for example a world manager) has loaded its worlds,
-        // so arena worlds can be found.
         getServer().getScheduler().runTask(this, this::activateArenas);
 
         getLogger().info("TheBridge enabled.");
@@ -88,11 +82,6 @@ public final class TheBridge extends JavaPlugin {
         instance = null;
     }
 
-    /**
-     * Makes every arena that was enabled last time playable again. An arena whose setup is no
-     * longer valid (for example its world is gone) stays disabled and the reason is logged.
-     * If a reset journal exists the server crashed mid-match: the arena is restored first.
-     */
     private void activateArenas() {
         for (Arena arena : arenaManager.getAll()) {
             if (!arena.isEnabled()) {
@@ -114,13 +103,11 @@ public final class TheBridge extends JavaPlugin {
             }
         }
 
-        // Players that were online while the server crashed in the middle of a match (rare, but possible with /reload).
         for (Player player : Bukkit.getOnlinePlayers()) {
             matchManager.recoverAfterCrash(player);
         }
     }
 
-    /** /thebridge reload */
     public void reload() {
         reloadConfig();
         settings = new GameSettings(getConfig(), getLogger());

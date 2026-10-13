@@ -30,17 +30,6 @@ import org.kylan1940.thebridge.reset.ArenaResetter;
 import java.util.Iterator;
 import java.util.List;
 
-/**
- * Block rules. Two jobs:
- *
- * 1. Decide what players may build and break (only inside the arena, only allowed blocks,
- *    only while a round is running, never inside the goals).
- * 2. Write down every change so ArenaResetter can undo it, and stop everything we cannot undo
- *    (liquids, fire, pistons, explosions of map blocks).
- *
- * Decisions are made at priority HIGH. The change is recorded at MONITOR, so a block placement that
- * another plugin cancelled later is never recorded.
- */
 public class BlockListener implements Listener {
 
     private final TheBridge plugin;
@@ -145,7 +134,6 @@ public class BlockListener implements Listener {
     // Things that would change blocks without a player placing them
     // ------------------------------------------------------------------
 
-    /** Explosions may only destroy blocks that players placed. Everything else of the map survives. */
     @EventHandler(ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent event) {
         filterExplosion(event.blockList());
@@ -212,11 +200,6 @@ public class BlockListener implements Listener {
     // Helpers
     // ------------------------------------------------------------------
 
-    /**
-     * The shared rules for placing and breaking by a player who is in a match:
-     * the round must be running, the player must be alive, the block must be inside the
-     * arena and (setting) outside the goals.
-     */
     private boolean mayChangeBlock(Match match, Player player, Block block) {
         Arena arena = match.getArena();
 
@@ -237,11 +220,6 @@ public class BlockListener implements Listener {
         return true;
     }
 
-    /**
-     * A player who is NOT in a match tries to change a block. Inside an arena that is in use this is
-     * not allowed. Only admins with thebridge.bypass may edit an arena that is empty (state WAITING and
-     * nobody inside) - never one with a running match, so a match can not be damaged.
-     */
     private void denyOutsider(Player player, Block block, org.bukkit.event.Cancellable event) {
         Arena arena = arenaManager.getArenaAt(block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
         if (arena == null) {

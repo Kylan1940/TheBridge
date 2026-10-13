@@ -13,10 +13,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-/** Tab completion for /thebridge. Only suggests what the sender is allowed to use. */
 public class BridgeTabCompleter implements TabCompleter {
 
-    /** Sub commands whose second word is an arena name. */
     private static final Set<String> ARENA_COMMANDS = Set.of(
             "join", "delete", "setlobby", "setspawn", "setgoal", "setbounds", "teamsize",
             "scorelimit", "duration", "enable", "disable", "stop", "info"

@@ -58,7 +58,7 @@ match:
   # TEST MODE FOR DEVELOPERS: the countdown starts with only ONE player, so you can test goals,
   # void, building and the reset alone. The player is team RED and scores in the BLUE goal.
   # Nothing is saved to the statistics and no rewards are given. Keep this false on a real server!
-  solo-test: true
+  solo-test: false
   # Commands players may still use during a match (/thebridge is always allowed).
   # Players with thebridge.admin may use every command.
   allowed-commands: []

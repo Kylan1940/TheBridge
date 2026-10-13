@@ -39,13 +39,6 @@ import org.kylan1940.thebridge.message.MessageUtil;
 
 import java.util.Locale;
 
-/**
- * Everything that happens TO a player: moving (goals and the void), taking damage, dying,
- * quitting, dropping items, running commands...
- *
- * The listener contains almost no game logic. It checks "is this player in a match?" and then
- * asks MatchManager or Match what to do. Players who are not in a match are never affected.
- */
 public class PlayerListener implements Listener {
 
     private final TheBridge plugin;
@@ -103,7 +96,6 @@ public class PlayerListener implements Listener {
         }
     }
 
-    /** No teleporting out of the arena with pearls, chorus fruit, commands or the spectator menu. */
     @EventHandler(ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent event) {
         if (!matchManager.isInMatch(event.getPlayer().getUniqueId())) {
@@ -123,10 +115,6 @@ public class PlayerListener implements Listener {
     // Damage and death
     // ------------------------------------------------------------------
 
-    /**
-     * All damage to players in a match goes through here.
-     * (EntityDamageByEntityEvent is a kind of EntityDamageEvent, so one method handles both.)
-     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player victim)) {
@@ -183,10 +171,6 @@ public class PlayerListener implements Listener {
         return null;
     }
 
-    /**
-     * Safety net. Some deaths cannot be cancelled in onDamage (for example /kill). The player
-     * still keeps everything, is brought back at once and then handled like a normal death.
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
@@ -242,7 +226,6 @@ public class PlayerListener implements Listener {
         }
     }
 
-    /** Armour cannot be taken off. */
     @EventHandler(ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getWhoClicked() instanceof Player player
@@ -256,7 +239,6 @@ public class PlayerListener implements Listener {
     // Interaction
     // ------------------------------------------------------------------
 
-    /** Players in a match cannot open chests, doors and so on, and cannot trample things. */
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
         if (!matchManager.isInMatch(event.getPlayer().getUniqueId())) {
@@ -301,7 +283,6 @@ public class PlayerListener implements Listener {
     // Commands
     // ------------------------------------------------------------------
 
-    /** During a match only /thebridge (and the commands listed in config.yml) can be used. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCommand(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();

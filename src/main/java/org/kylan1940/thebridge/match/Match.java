@@ -12,31 +12,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * The RULES of one match: who is playing, which team they are on and what the score is.
- *
- * This class never touches Bukkit (no teleporting, no messages, no schedulers). That is on
- * purpose: it can be unit tested with plain JUnit, and MatchManager is the class that turns
- * these decisions into things players actually see.
- */
 public class Match {
 
-    /** What happened when a goal was reported. */
     public enum GoalResult {
-        /** The goal does not count (wrong time, already scored this round, unknown player). */
         IGNORED,
-        /** A point was scored and the match goes on. */
         SCORED,
-        /** The point was the last one needed. The match is won. */
         MATCH_WON
     }
 
     private final Arena arena;
     private final int scoreLimit;
 
-    /** Players that are currently in the match, in the order they joined. */
     private final List<UUID> players = new ArrayList<>();
-    /** Team of every player who was ever assigned. Kept after a player leaves so stats stay correct. */
     private final Map<UUID, MatchTeam> teams = new LinkedHashMap<>();
     private final Map<UUID, String> names = new LinkedHashMap<>();
 
@@ -44,20 +31,16 @@ public class Match {
     private final Map<UUID, Integer> goals = new LinkedHashMap<>();
     private final Map<UUID, Integer> kills = new LinkedHashMap<>();
     private final Map<UUID, Integer> deaths = new LinkedHashMap<>();
-    /** Players who died and are waiting for their respawn delay to pass. */
     private final Set<UUID> respawning = new HashSet<>();
 
     private final int durationSeconds;
     private int secondsLeft;
-    /** Used for the pre-match countdown and for the short pause before every round. */
     private int countdown;
-    /** True while players may fight and score. False during countdowns and right after a goal. */
     private boolean roundActive = false;
 
     private MatchTeam winner;
     private boolean finished = false;
 
-    /** Developer test mode (config: match.solo-test). One player is enough, nothing is saved to the statistics. */
     private boolean soloTest = false;
 
     public Match(Arena arena, int scoreLimit, int durationSeconds) {
@@ -73,7 +56,6 @@ public class Match {
     // Players and teams
     // ------------------------------------------------------------------
 
-    /** Adds a player to the waiting list. Returns false if the arena is full, not joinable or the player is already in. */
     public boolean addPlayer(UUID uuid, String name) {
         if (!arena.getState().isJoinable() || isFull() || players.contains(uuid)) {
             return false;
@@ -83,12 +65,6 @@ public class Match {
         return true;
     }
 
-    /**
-     * Removes a player from the match (they left, disconnected or were kicked).
-     * Their team and stats are kept so the final results stay correct.
-     *
-     * @return true if the player was in the match
-     */
     public boolean removePlayer(UUID uuid) {
         respawning.remove(uuid);
         return players.remove(uuid);
@@ -110,7 +86,6 @@ public class Match {
         return soloTest;
     }
 
-    /** How many players must be waiting before the countdown starts. Normally a full arena, in solo test mode just one. */
     public int getPlayersNeeded() {
         return soloTest ? 1 : arena.getMaxPlayers();
     }
@@ -119,10 +94,6 @@ public class Match {
         return players.size() >= getPlayersNeeded();
     }
 
-    /**
-     * Splits the waiting players into teams by alternating: RED, BLUE, RED, BLUE...
-     * With 2 players (1v1) that gives one per team, with 4 players (2v2) two per team.
-     */
     public void assignTeams() {
         teams.clear();
         MatchTeam next = MatchTeam.RED;
@@ -139,7 +110,6 @@ public class Match {
         return teams.get(uuid);
     }
 
-    /** Players of this team that are still in the match. */
     public List<UUID> getActivePlayers(MatchTeam team) {
         List<UUID> result = new ArrayList<>();
         for (UUID uuid : players) {
@@ -150,7 +120,6 @@ public class Match {
         return result;
     }
 
-    /** Everyone who played in this match, including players who already left. */
     public List<UUID> getParticipants() {
         return new ArrayList<>(teams.keySet());
     }
@@ -167,19 +136,10 @@ public class Match {
         roundActive = true;
     }
 
-    /** True while the round is paused: the match runs but nobody may move or fight yet. */
     public boolean isFrozen() {
         return arena.getState() == ArenaState.IN_GAME && !roundActive;
     }
 
-    /**
-     * Called when a player stepped into the goal of the OTHER team.
-     *
-     * Duplicate protection: the first call of a round sets roundActive to false.
-     * Every later call (the same player moving again in the same tick, or the other
-     * team scoring at the same moment) is IGNORED until the next round starts.
-     * So "simultaneous goals" always resolve to: the first event that is processed wins.
-     */
     public GoalResult registerGoal(UUID scorer) {
         if (arena.getState() != ArenaState.IN_GAME || !roundActive || finished) {
             return GoalResult.IGNORED;
@@ -255,7 +215,6 @@ public class Match {
         countdown = seconds;
     }
 
-    /** Lowers the countdown by one second (never below 0) and returns the new value. */
     public int tickCountdown() {
         if (countdown > 0) {
             countdown--;
@@ -267,17 +226,10 @@ public class Match {
         return secondsLeft;
     }
 
-    /** How many seconds of active play have passed (paused rounds are not counted). */
     public int getElapsedSeconds() {
         return durationSeconds - secondsLeft;
     }
 
-    /**
-     * Lowers the match clock by one second, but only while a round is active
-     * (the clock does not run during countdowns and respawn pauses of the whole round).
-     *
-     * @return true when the time just ran out
-     */
     public boolean tickClock() {
         if (arena.getState() != ArenaState.IN_GAME || !roundActive || finished) {
             return false;
@@ -292,10 +244,6 @@ public class Match {
     // Ending
     // ------------------------------------------------------------------
 
-    /**
-     * The winner when time ran out: the team with more points.
-     * Returns null for a tie (a draw).
-     */
     public MatchTeam decideTimeoutWinner() {
         int red = scores.get(MatchTeam.RED);
         int blue = scores.get(MatchTeam.BLUE);
@@ -305,10 +253,6 @@ public class Match {
         return red > blue ? MatchTeam.RED : MatchTeam.BLUE;
     }
 
-    /**
-     * Checks if one team has no players left. The other team then wins by forfeit.
-     * Returns null when both teams still have players, or when nobody is left at all.
-     */
     public MatchTeam getForfeitWinner() {
         boolean redHasPlayers = !getActivePlayers(MatchTeam.RED).isEmpty();
         boolean blueHasPlayers = !getActivePlayers(MatchTeam.BLUE).isEmpty();
@@ -326,7 +270,6 @@ public class Match {
         return players.isEmpty();
     }
 
-    /** Marks the match as over. winner is null for a draw. */
     public void finish(MatchTeam winner) {
         this.winner = winner;
         this.finished = true;

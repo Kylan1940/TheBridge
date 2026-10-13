@@ -22,34 +22,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 
-/**
- * Puts an arena back the way it was after a match.
- *
- * How it works (see BlockTracker): while a match runs, every block a player places or
- * breaks is written down together with its ORIGINAL state. At reset time those blocks
- * are set back, a few hundred per tick, so the server never lags.
- *
- * What is restored: the type and block state (rotation, waterlogged, ...) of changed blocks.
- * What is NOT restored (documented limitation):
- *   - items inside containers (containers are protected from players instead),
- *   - entities other than dropped items and arrows, which are simply removed,
- *   - fluid flow, fire spread and pistons are cancelled inside arenas by BlockListener, so they
- *     should never change blocks. Gravity blocks (sand, gravel) and redstone machines are NOT handled:
- *     do not put them in build.allowed-blocks,
- *   - changes made by other plugins or by commands.
- *
- * Crash safety: the list of changed blocks is saved to journals/<arena>.journal every few
- * seconds. If the server crashes mid-match, the arena is restored from the journal on the
- * next start. A crash in the 'few seconds' between two saves can leave the newest blocks behind.
- */
 public class ArenaResetter {
 
     private final TheBridge plugin;
     private final File journalFolder;
 
-    /** One tracker per arena (key = lower case arena name). */
     private final Map<String, BlockTracker> trackers = new HashMap<>();
-    /** Restores that are running right now, so they can be cancelled on shutdown. */
     private final Map<String, BukkitTask> restoreTasks = new HashMap<>();
 
     private BukkitTask journalTask;
@@ -125,7 +103,6 @@ public class ArenaResetter {
         restoreTasks.put(key, task);
     }
 
-    /** Restores everything immediately (no batching). Only used when the server is shutting down. */
     public void restoreAllNow() {
         for (BukkitTask task : restoreTasks.values()) {
             task.cancel();
@@ -162,7 +139,6 @@ public class ArenaResetter {
         }
     }
 
-    /** Dropped items and arrows are not tracked, so they are removed. */
     private void removeLeftoverEntities(Arena arena) {
         Region bounds = arena.getBounds();
         World world = Bukkit.getWorld(arena.getWorldName());
@@ -182,7 +158,6 @@ public class ArenaResetter {
     // Journals (crash recovery)
     // ------------------------------------------------------------------
 
-    /** Starts the repeating task that saves the journals. */
     public void start() {
         long ticks = plugin.getSettings().journalIntervalSeconds * 20L;
         journalTask = Bukkit.getScheduler().runTaskTimer(plugin, this::saveJournals, ticks, ticks);
@@ -195,7 +170,6 @@ public class ArenaResetter {
         }
     }
 
-    /** Writes the journal of every arena whose tracker changed since the last save. */
     public void saveJournals() {
         for (Map.Entry<String, BlockTracker> entry : trackers.entrySet()) {
             BlockTracker tracker = entry.getValue();
@@ -218,7 +192,6 @@ public class ArenaResetter {
         return journalFile(arena.getName()).exists();
     }
 
-    /** Loads the journal of an arena (left behind by a crash) and restores it. */
     public void recover(Arena arena, Runnable whenDone) {
         try {
             trackers.put(arena.getName().toLowerCase(Locale.ROOT), BlockTracker.loadFrom(journalFile(arena.getName())));

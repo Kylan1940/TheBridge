@@ -18,21 +18,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
-/**
- * Keeps all arenas in memory and saves each one to its own file: plugins/TheBridge/arenas/<name>.yml
- * (arena settings are separate from config.yml on purpose, because every arena is different).
- *
- * Also remembers the pos1 / pos2 selections admins make before /thebridge setgoal and setbounds.
- */
 public class ArenaManager {
 
     private final JavaPlugin plugin;
     private final File arenaFolder;
 
-    /** Key is the lower case arena name, so "Lava" and "lava" are the same arena. */
     private final Map<String, Arena> arenas = new LinkedHashMap<>();
 
-    /** pos1 and pos2 of every admin who is setting up an arena. Index 0 = pos1, 1 = pos2. */
     private final Map<UUID, Point[]> selections = new HashMap<>();
 
     public ArenaManager(JavaPlugin plugin) {
@@ -55,15 +47,10 @@ public class ArenaManager {
         return arenas.values();
     }
 
-    /** Names are used as file names, so only safe characters are allowed. */
     public static boolean isValidName(String name) {
         return name != null && name.matches("[A-Za-z0-9_-]{1,32}");
     }
 
-    /**
-     * The arena (that is not disabled) whose bounds contain this position, or null.
-     * Block listeners use this to protect arenas that are in use.
-     */
     public Arena getArenaAt(String worldName, double x, double y, double z) {
         for (Arena arena : arenas.values()) {
             if (arena.getState() == ArenaState.DISABLED || arena.getBounds() == null) {
@@ -80,7 +67,6 @@ public class ArenaManager {
     // Create / delete
     // ------------------------------------------------------------------
 
-    /** Returns null if the name is invalid or already used. */
     public Arena create(String name, String worldName) {
         if (!isValidName(name) || get(name) != null) {
             return null;
@@ -107,7 +93,6 @@ public class ArenaManager {
         selections.computeIfAbsent(admin, key -> new Point[2])[index] = point;
     }
 
-    /** Returns the region between pos1 and pos2, or null if one of them is missing or they are in different worlds. */
     public Region getSelectedRegion(UUID admin, String worldName) {
         Point[] points = selections.get(admin);
         if (points == null || points[0] == null || points[1] == null) {
@@ -119,7 +104,6 @@ public class ArenaManager {
         return Region.of(points[0], points[1]);
     }
 
-    /** Called when an admin leaves the server, so the map does not grow forever. */
     public void clearSelection(UUID admin) {
         selections.remove(admin);
     }
@@ -152,7 +136,6 @@ public class ArenaManager {
         }
     }
 
-    /** Loads every arenas/*.yml. Arenas start DISABLED; TheBridge activates enabled ones once all worlds are loaded. */
     public void loadAll() {
         arenas.clear();
         arenaFolder.mkdirs();
@@ -244,7 +227,6 @@ public class ArenaManager {
         );
     }
 
-    /** Names of all arenas, for tab completion. */
     public List<String> getNames() {
         List<String> names = new ArrayList<>();
         for (Arena arena : arenas.values()) {

@@ -23,22 +23,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-/**
- * The /thebridge command. Every sub command has its own small method below, so you can find
- * and change one of them without reading the others.
- *
- * Setup commands (create, setspawn, setgoal ...) only work while an arena is DISABLED. This is on
- * purpose: changing the spawns of an arena while players are inside would break the match.
- */
 public class BridgeCommand implements CommandExecutor {
 
-    /** Sub commands that need thebridge.admin. The tab completer uses the same lists. */
     public static final Set<String> ADMIN_COMMANDS = Set.of(
             "create", "delete", "setspawn", "setgoal", "setlobby", "setbounds", "pos1", "pos2",
             "teamsize", "scorelimit", "duration", "enable", "disable", "stop", "info", "reload"
     );
 
-    /** Sub commands for everybody (each one still checks its own permission). */
     public static final Set<String> PLAYER_COMMANDS = Set.of("join", "leave", "list", "stats", "help");
 
     private final TheBridge plugin;
@@ -270,8 +261,6 @@ public class BridgeCommand implements CommandExecutor {
         if (arena == null) {
             return;
         }
-        // Safe cancellation: a running, resetting or enabled arena is never deleted directly.
-        // /thebridge disable cancels the match, sends the players back and restores the blocks.
         if (arena.getState() != ArenaState.DISABLED || arena.isEnabled() || matchManager.getMatch(arena) != null) {
             MessageUtil.send(sender, "messages.arena-active", "%arena%", arena.getName());
             return;
@@ -310,7 +299,6 @@ public class BridgeCommand implements CommandExecutor {
         MessageUtil.send(player, "messages.arena-saved", "%what%", team.getDisplayName() + " spawn of " + arena.getName());
     }
 
-    /** The goal is the box between pos1 and pos2. Stand in the corners and use /thebridge pos1 and pos2. */
     private void setGoal(CommandSender sender, String[] args) {
         Arena arena = findEditableArena(sender, args, "/thebridge setgoal <arena> <red|blue>", 3);
         if (arena == null) {
@@ -332,7 +320,6 @@ public class BridgeCommand implements CommandExecutor {
         MessageUtil.send(player, "messages.arena-saved", "%what%", team.getDisplayName() + " goal of " + arena.getName());
     }
 
-    /** The bounds are the box between pos1 and pos2. The BOTTOM of the box is the void: falling below it is a death. */
     private void setBounds(CommandSender sender, String[] args) {
         Arena arena = findEditableArena(sender, args, "/thebridge setbounds <arena>", 2);
         if (arena == null) {
@@ -399,7 +386,6 @@ public class BridgeCommand implements CommandExecutor {
         if (value == null) {
             return;
         }
-        // 0 means "use config.yml". Everything else must be a sensible length.
         if (value != 0 && value < 30) {
             MessageUtil.send(sender, "messages.invalid-number",
                     "%value%", args[2], "%min%", "30 (or 0)", "%max%", "86400");
@@ -424,13 +410,11 @@ public class BridgeCommand implements CommandExecutor {
             return;
         }
         if (arena.getState() != ArenaState.DISABLED) {
-            // Either it is already enabled, or a disabled arena is still finishing its reset.
             MessageUtil.send(sender, arena.isEnabled() ? "messages.already-enabled" : "messages.arena-active",
                     "%arena%", arena.getName());
             return;
         }
 
-        // Never enable an arena silently when something is wrong. Tell the admin exactly what.
         List<String> problems = arena.getProblems(Bukkit.getWorld(arena.getWorldName()) != null);
         if (!problems.isEmpty()) {
             MessageUtil.send(sender, "messages.arena-not-ready", "%arena%", arena.getName());
@@ -446,13 +430,6 @@ public class BridgeCommand implements CommandExecutor {
         MessageUtil.send(sender, "messages.arena-enabled", "%arena%", arena.getName());
     }
 
-    /**
-     * Switches an arena off safely:
-     *  - waiting players are sent out,
-     *  - a running match is cancelled (no winner, no stats),
-     *  - an arena that is already ending or resetting finishes its reset first and ends up DISABLED
-     *    (MatchManager checks arena.isEnabled() when the reset is done).
-     */
     private void disable(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendUsage(sender, "/thebridge disable <arena>");
@@ -552,7 +529,6 @@ public class BridgeCommand implements CommandExecutor {
         MessageUtil.send(sender, "messages.usage", "%command%", usage);
     }
 
-    /** Finds an arena and tells the sender when it does not exist. Returns null in that case. */
     private Arena findArena(CommandSender sender, String name) {
         Arena arena = arenaManager.get(name);
         if (arena == null) {
@@ -561,12 +537,6 @@ public class BridgeCommand implements CommandExecutor {
         return arena;
     }
 
-    /**
-     * For setup commands that need a player: checks the sender, the arguments, that the arena exists
-     * and that it is disabled. Returns null (after telling the sender why) when something is wrong.
-     *
-     * @param minArgs how many words the command needs, including the sub command itself
-     */
     private Arena findEditableArena(CommandSender sender, String[] args, String usage, int minArgs) {
         if (!(sender instanceof Player)) {
             MessageUtil.send(sender, "messages.player-only");
@@ -587,7 +557,6 @@ public class BridgeCommand implements CommandExecutor {
         return arena;
     }
 
-    /** Same as findEditableArena, but for options that also work from the console. Needs 3 words. */
     private Arena findArenaForOption(CommandSender sender, String[] args, String usage) {
         if (args.length < 3) {
             sendUsage(sender, usage);
@@ -612,7 +581,6 @@ public class BridgeCommand implements CommandExecutor {
         return false;
     }
 
-    /** Returns the number, or null after telling the sender that it is invalid. */
     private Integer parseNumber(CommandSender sender, String text, int min, int max) {
         try {
             int value = Integer.parseInt(text);

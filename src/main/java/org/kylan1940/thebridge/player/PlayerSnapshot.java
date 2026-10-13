@@ -16,17 +16,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Everything about a player that TheBridge changes, saved before the match so it can be
- * put back afterwards: inventory (with armour and off hand), game mode, health, food,
- * experience, flying, potion effects and the location they came from.
- *
- * The snapshot is also written to disk (plugins/TheBridge/snapshots/<uuid>.yml). If the server
- * crashes during a match, the player is restored from that file the next time they join.
- *
- * Limitation: things TheBridge never touches (for example scoreboard, custom name tags
- * from other plugins, advancements) are not saved.
- */
 public class PlayerSnapshot {
 
     private final ItemStack[] contents;
@@ -70,7 +59,6 @@ public class PlayerSnapshot {
         this.pitch = pitch;
     }
 
-    /** Takes a snapshot of the player as they are right now. */
     public static PlayerSnapshot capture(Player player) {
         Location location = player.getLocation();
         // clone() so later changes to the inventory do not change our copy.
@@ -98,7 +86,6 @@ public class PlayerSnapshot {
         );
     }
 
-    /** Puts the player back the way they were. Also teleports them to where they came from. */
     @SuppressWarnings("deprecation") // getMaxHealth() works on every 1.21 version (the Attribute name changed in 1.21.3)
     public void restore(Player player) {
         // Clear what the game gave them first.

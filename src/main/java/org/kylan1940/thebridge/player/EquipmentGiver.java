@@ -16,16 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Prepares a player for the lobby or for a round: clears them completely and gives the
- * starting equipment from config.yml (equipment.items and equipment.armor).
- *
- * In an item "material" you can write {team}. It becomes RED or BLUE, so
- * {team}_TERRACOTTA gives every team its own coloured blocks.
- */
 public class EquipmentGiver {
 
-    /** One entry of equipment.items, already checked. */
     private record ItemSpec(String material, int amount, int slot, boolean unbreakable) {
     }
 
@@ -38,7 +30,6 @@ public class EquipmentGiver {
         this.plugin = plugin;
     }
 
-    /** Reads equipment from config.yml. Called on startup and on /thebridge reload. */
     public void load() {
         items.clear();
         giveArmor = plugin.getConfig().getBoolean("equipment.armor.enabled", true);
@@ -75,13 +66,11 @@ public class EquipmentGiver {
         return fallback;
     }
 
-    /** Lobby: empty inventory, full health, adventure mode (cannot build or break anything). */
     public void prepareForLobby(Player player) {
         resetPlayer(player);
         player.setGameMode(GameMode.ADVENTURE);
     }
 
-    /** Round: empty inventory, full health, survival mode and the configured equipment. */
     public void giveRoundEquipment(Player player, MatchTeam team) {
         resetPlayer(player);
         player.setGameMode(GameMode.SURVIVAL);

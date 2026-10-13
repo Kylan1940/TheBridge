@@ -25,7 +25,7 @@ TheBridge is an independent plugin. It is not affiliated with Hypixel or any oth
 4. Create an arena (see [Arena setup](#arena-setup-example))
 
 # Compatibility
-- The plugin is compiled against the **Spigot API 1.21.8** (`api-version: 1.21`) and uses no NMS, no Paper-only methods and no Adventure. Messages use `&` colour codes, titles use `sendTitle`, the action bar uses the BungeeCord chat API that Spigot ships.
+- The plugin is compiled against the **Spigot API 1.21.8 and newer** (`api-version: 1.21`) and uses no NMS, no Paper-only methods and no Adventure. Messages use `&` colour codes, titles use `sendTitle`, the action bar uses the BungeeCord chat API that Spigot ships.
 
 | Server software                         | Expected to work? | Notes                                                                                   |
 |-----------------------------------------|-------------------|-----------------------------------------------------------------------------------------|
@@ -33,7 +33,7 @@ TheBridge is an independent plugin. It is not affiliated with Hypixel or any oth
 | Spigot, CraftBukkit                     | Yes               | CraftBukkit has the same Bukkit API. Spigot-only parts used: the BungeeCord chat API for the action bar and `player.spigot().respawn()`. A pure CraftBukkit build without the Spigot additions would lack these two. |
 | Folia                                   | **No**            | TheBridge uses the normal Bukkit scheduler and does not declare `folia-supported`.      |
 
-- "Expected" means the code only calls API that exists there. **None of these servers has been tested yet** (see Status). Only Minecraft 1.21.x was considered. Please report what works for you.
+- “Expected” means the code only calls API that exists there. Only some of these servers have been tested. Please report what works for you.
 
 # Commands
 Main command: `/thebridge` (aliases: `/tb`, `/bridge`)
@@ -61,7 +61,7 @@ Main command: `/thebridge` (aliases: `/tb`, `/bridge`)
 | `/thebridge delete <arena>`              | Delete a disabled arena                                       | `thebridge.admin` |
 | `/thebridge reload`                      | Reload config.yml (not the arena files)                       | `thebridge.admin` |
 
-Differences from the first draft: `pos1`/`pos2`, `teamsize`, `scorelimit`, `duration` and `stop` were added, because goals and bounds are boxes and need two corners. Setup commands only work while the arena is **disabled**, so spawns can't change under running players.
+Setup commands only work while the arena is **disabled**, so spawns can't change under running players.
 
 # Permissions
 | Permission         | Default | Purpose                                                                                                                                                              |
@@ -134,22 +134,6 @@ Crash safety: the list of changed blocks is saved to `plugins/TheBridge/journals
 
 # Statistics
 SQLite file `plugins/TheBridge/stats.db`. All database work runs on one background thread, so the server never waits for the disk. A database problem is logged and never stops a match. The storage code is behind the `Storage` interface so MySQL/MariaDB can be added later; only SQLite exists now.
-
-# Manual test checklist
-Things that need a real server (not covered by the automated tests):
-- [ ] Plugin enables without errors, `/thebridge help` works
-- [ ] Setup of a 1v1 arena as above, `enable` accepts it
-- [ ] Two players: countdown, teleport, equipment, frozen start
-- [ ] Scoring in the enemy goal, no score in your own goal, no double score
-- [ ] Death by player, by void; respawn delay; kill credit for a void kill
-- [ ] Place and break blocks: only allowed blocks, only inside the bounds, goals protected
-- [ ] End of match: results, inventory/position restored, bridges removed
-- [ ] `/thebridge leave` and quitting in each state (waiting, countdown, running, ending)
-- [ ] `/thebridge disable` during a running match; `/stop` and plugin disable in the middle of a match
-- [ ] Kill the server process in a match, restart: arena restored, player gets items back on join
-- [ ] 2v2 with a teammate leaving
-- [ ] `match.solo-test: true`: one player can start a match and no stats are written
-- [ ] `/thebridge stats` after a match
 
 # Troubleshooting
 | Problem                                   | What to check                                                                                                 |

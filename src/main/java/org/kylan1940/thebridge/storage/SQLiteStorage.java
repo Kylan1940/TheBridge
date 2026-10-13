@@ -14,15 +14,6 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Saves statistics in a local SQLite file.
- *
- * Same style as ServerTimeline: one connection per operation, text blocks for SQL and
- * try-with-resources so connections are always closed. Every SQL value goes through a
- * PreparedStatement, so player names can never break (or inject into) a query.
- *
- * The SQLite driver is provided by the Minecraft server, so it is not shaded into the jar.
- */
 public class SQLiteStorage implements Storage {
 
     private final String databaseUrl;

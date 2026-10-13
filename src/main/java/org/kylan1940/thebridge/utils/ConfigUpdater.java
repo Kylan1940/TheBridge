@@ -5,11 +5,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 
-/**
- * Same idea as in your other plugins: when config-version in the file is older than the
- * version this plugin needs, the old file is renamed to config-<version>.yml (so no
- * settings are lost) and a fresh config.yml is written.
- */
 public class ConfigUpdater {
 
     private static final int CONFIG_VERSION = 1;
