@@ -16,7 +16,7 @@ import java.util.Set;
 public class BridgeTabCompleter implements TabCompleter {
 
     private static final Set<String> ARENA_COMMANDS = Set.of(
-            "join", "delete", "setlobby", "setspawn", "setgoal", "setbounds", "teamsize",
+            "join", "setup", "delete", "setlobby", "setspawn", "setgoal", "setbounds", "teamsize",
             "scorelimit", "duration", "enable", "disable", "stop", "info"
     );
 

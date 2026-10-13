@@ -1,12 +1,5 @@
 # ===========================================================================
-# _______ _        ____       _     _
-# |__   __| |     |  _ \     (_)   | |
-# | |  | |__   ___| |_) |_ __ _  __| | __ _  ___
-# | |  | '_ \ / _ \  _ <| '__| |/ _` |/ _` |/ _ \
-# | |  | | | |  __/ |_) | |  | | (_| | (_| |  __/
-# |_|  |_| |_|\___|____/|_|  |_|\__,_|\__, |\___|
-#                                     __/ |
-#                                    |___/
+# THE BRIDGE
 # ===========================================================================
 # Report Plugin: https://github.com/Kylan1940/TheBridge/issues/new
 # ===========================================================================
@@ -304,6 +297,7 @@ messages:
   help-admin:
     - "&6Setup (an arena must be disabled to change it):"
     - "&e/thebridge create <arena> &7- 1. create it in your world"
+    - "&e/thebridge setup <arena> &7- open the setup menu (click instead of typing)"
     - "&e/thebridge setlobby <arena> &7- 2. waiting room"
     - "&e/thebridge setspawn <arena> <red|blue> &7- 3. team spawns"
     - "&e/thebridge pos1 &7/ &e/thebridge pos2 &7- select a box"

@@ -3,6 +3,11 @@ TheBridge is a Minecraft Java Server minigame plugin. Two teams (1v1 or 2v2) fig
 
 TheBridge is an independent plugin. It is not affiliated with Hypixel or any other server network.
 
+# Status (please read)
+- The Bukkit-free logic (arena state machine, scoring, teams, block tracking, arena validation) has automated unit tests that were run and passed (45 tests, JUnit 4).
+- The statistics database tests (`SQLiteStorageTest`) exist but were **not run** in the environment this was written in (no access to the SQLite driver there). They run during `mvn package` on your machine.
+- The full plugin was **not compiled against the Paper API and was not tested on a real server** in that environment. Run `mvn clean package` first and play-test one arena before using it on a public server. See [Manual test checklist](#manual-test-checklist).
+
 # Features
 >- 1v1 and 2v2 (any team size up to `match.max-team-size`)
 >- Multiple arenas, each saved in its own file
@@ -15,17 +20,18 @@ TheBridge is an independent plugin. It is not affiliated with Hypixel or any oth
 >- Crash recovery for players (inventory, location, game mode ...) and for arena blocks
 >- SQLite statistics (wins, losses, goals, kills, deaths, matches, win streak), saved on a background thread
 >- Titles, action bar, sounds, optional console-command rewards
->- Runs on Spigot, CraftBukkit, Paper and Paper forks (Purpur, Pufferfish, Leaves)
+>- Runs on Spigot, CraftBukkit, Paper and Paper forks
 >- Permissions and tab completion
 
 # Installation
-1. Download the plugin.
+1. Download the plugin jar (see [Releases](https://github.com/Kylan1940/TheBridge/releases)) or [build it yourself](#building)
 2. Put it into the **plugins** folder
 3. Restart the server
 4. Create an arena (see [Arena setup](#arena-setup-example))
 
 # Compatibility
-- The plugin is compiled against the **Spigot API 1.21.8 and newer** (`api-version: 1.21`) and uses no NMS, no Paper-only methods and no Adventure. Messages use `&` colour codes, titles use `sendTitle`, the action bar uses the BungeeCord chat API that Spigot ships.
+- Java **21** is required.
+- The plugin is compiled against the **Paper API 1.21.8** (`api-version: 1.21`), but the code only calls API that also exists in Spigot: no NMS, no Paper-only methods and no Adventure. This was checked by reading the code, not by compiling against Spigot, so a Paper-only call could still have slipped through. Messages use `&` colour codes, titles use `sendTitle`, the action bar uses the BungeeCord chat API that Spigot ships.
 
 | Server software                         | Expected to work? | Notes                                                                                   |
 |-----------------------------------------|-------------------|-----------------------------------------------------------------------------------------|
@@ -33,7 +39,7 @@ TheBridge is an independent plugin. It is not affiliated with Hypixel or any oth
 | Spigot, CraftBukkit                     | Yes               | CraftBukkit has the same Bukkit API. Spigot-only parts used: the BungeeCord chat API for the action bar and `player.spigot().respawn()`. A pure CraftBukkit build without the Spigot additions would lack these two. |
 | Folia                                   | **No**            | TheBridge uses the normal Bukkit scheduler and does not declare `folia-supported`.      |
 
-- “Expected” means the code only calls API that exists there. Only some of these servers have been tested. Please report what works for you.
+- "Expected" means the code only calls API that exists there. **Only some of these servers have been tested** (see Status). Only Minecraft 1.21.x was considered. Please report what works for you.
 
 # Commands
 Main command: `/thebridge` (aliases: `/tb`, `/bridge`)
@@ -46,6 +52,7 @@ Main command: `/thebridge` (aliases: `/tb`, `/bridge`)
 | `/thebridge leave`                       | Leave your match                                              | `thebridge.leave` |
 | `/thebridge stats [player]`              | Show statistics                                               | `thebridge.stats` |
 | `/thebridge create <arena>`              | Create an arena in your current world                         | `thebridge.admin` |
+| `/thebridge setup <arena>`               | Open the setup menu (buttons run the commands below)          | `thebridge.admin` |
 | `/thebridge setlobby <arena>`            | Set the waiting room to your position                         | `thebridge.admin` |
 | `/thebridge setspawn <arena> <red\|blue>` | Set a team spawn to your position                             | `thebridge.admin` |
 | `/thebridge pos1` / `pos2`               | Select two corners (used by `setgoal` and `setbounds`)        | `thebridge.admin` |
@@ -61,7 +68,7 @@ Main command: `/thebridge` (aliases: `/tb`, `/bridge`)
 | `/thebridge delete <arena>`              | Delete a disabled arena                                       | `thebridge.admin` |
 | `/thebridge reload`                      | Reload config.yml (not the arena files)                       | `thebridge.admin` |
 
-Setup commands only work while the arena is **disabled**, so spawns can't change under running players.
+Differences from the first draft: `pos1`/`pos2`, `teamsize`, `scorelimit`, `duration` and `stop` were added, because goals and bounds are boxes and need two corners. Setup commands only work while the arena is **disabled**, so spawns can't change under running players.
 
 # Permissions
 | Permission         | Default | Purpose                                                                                                                                                              |
@@ -134,6 +141,38 @@ Crash safety: the list of changed blocks is saved to `plugins/TheBridge/journals
 
 # Statistics
 SQLite file `plugins/TheBridge/stats.db`. All database work runs on one background thread, so the server never waits for the disk. A database problem is logged and never stops a match. The storage code is behind the `Storage` interface so MySQL/MariaDB can be added later; only SQLite exists now.
+
+# Building
+Requirements: JDK 21 and Maven.
+
+```
+mvn clean package
+```
+
+The plugin jar is `target/TheBridge-<version>.jar`. Tests run automatically; `mvn clean package -DskipTests` skips them.
+
+# GitHub release
+1. Change `<version>` in `pom.xml` (for example `1.0.0`) and commit
+2. `mvn clean package`
+3. Create a tag: `git tag 1.0.0 && git push origin 1.0.0`
+4. On GitHub: Releases → Draft a new release → choose the tag → attach `target/TheBridge-1.0.0.jar`
+5. Use the Modrinth/CurseForge texts in [`docs/`](docs) for the project pages
+
+# Manual test checklist
+Things that need a real server (not covered by the automated tests):
+- [ ] Plugin enables without errors, `/thebridge help` works
+- [ ] Setup of a 1v1 arena as above, `enable` accepts it
+- [ ] Two players: countdown, teleport, equipment, frozen start
+- [ ] Scoring in the enemy goal, no score in your own goal, no double score
+- [ ] Death by player, by void; respawn delay; kill credit for a void kill
+- [ ] Place and break blocks: only allowed blocks, only inside the bounds, goals protected
+- [ ] End of match: results, inventory/position restored, bridges removed
+- [ ] `/thebridge leave` and quitting in each state (waiting, countdown, running, ending)
+- [ ] `/thebridge disable` during a running match; `/stop` and plugin disable in the middle of a match
+- [ ] Kill the server process in a match, restart: arena restored, player gets items back on join
+- [ ] 2v2 with a teammate leaving
+- [ ] `match.solo-test: true`: one player can start a match and no stats are written
+- [ ] `/thebridge stats` after a match
 
 # Troubleshooting
 | Problem                                   | What to check                                                                                                 |

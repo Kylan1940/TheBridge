@@ -11,6 +11,7 @@ import org.kylan1940.thebridge.arena.ArenaManager;
 import org.kylan1940.thebridge.arena.ArenaState;
 import org.kylan1940.thebridge.arena.Point;
 import org.kylan1940.thebridge.arena.Region;
+import org.kylan1940.thebridge.gui.SetupMenu;
 import org.kylan1940.thebridge.match.Match;
 import org.kylan1940.thebridge.match.MatchManager;
 import org.kylan1940.thebridge.match.MatchTeam;
@@ -26,7 +27,7 @@ import java.util.Set;
 public class BridgeCommand implements CommandExecutor {
 
     public static final Set<String> ADMIN_COMMANDS = Set.of(
-            "create", "delete", "setspawn", "setgoal", "setlobby", "setbounds", "pos1", "pos2",
+            "create", "setup", "delete", "setspawn", "setgoal", "setlobby", "setbounds", "pos1", "pos2",
             "teamsize", "scorelimit", "duration", "enable", "disable", "stop", "info", "reload"
     );
 
@@ -77,6 +78,7 @@ public class BridgeCommand implements CommandExecutor {
             case "stats" -> stats(sender, args);
 
             case "create" -> create(sender, args);
+            case "setup" -> setup(sender, args);
             case "delete" -> delete(sender, args);
             case "setlobby" -> setLobby(sender, args);
             case "setspawn" -> setSpawn(sender, args);
@@ -252,6 +254,23 @@ public class BridgeCommand implements CommandExecutor {
                 "%world%", arena.getWorldName());
     }
 
+    // Opens the setup menu. Every button inside runs one of the commands below.
+    private void setup(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            MessageUtil.send(sender, "messages.player-only");
+            return;
+        }
+        if (args.length < 2) {
+            sendUsage(player, "/thebridge setup <arena>");
+            return;
+        }
+        Arena arena = findArena(player, args[1]);
+        if (arena == null) {
+            return;
+        }
+        new SetupMenu(plugin, arenaManager, matchManager, arena.getName(), player.getUniqueId()).open(player);
+    }
+
     private void delete(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendUsage(sender, "/thebridge delete <arena>");
@@ -261,6 +280,8 @@ public class BridgeCommand implements CommandExecutor {
         if (arena == null) {
             return;
         }
+        // Safe cancellation: a running, resetting or enabled arena is never deleted directly.
+        // /thebridge disable cancels the match, sends the players back and restores the blocks.
         if (arena.getState() != ArenaState.DISABLED || arena.isEnabled() || matchManager.getMatch(arena) != null) {
             MessageUtil.send(sender, "messages.arena-active", "%arena%", arena.getName());
             return;
@@ -386,6 +407,7 @@ public class BridgeCommand implements CommandExecutor {
         if (value == null) {
             return;
         }
+        // 0 means "use config.yml". Everything else must be a sensible length.
         if (value != 0 && value < 30) {
             MessageUtil.send(sender, "messages.invalid-number",
                     "%value%", args[2], "%min%", "30 (or 0)", "%max%", "86400");
@@ -410,11 +432,13 @@ public class BridgeCommand implements CommandExecutor {
             return;
         }
         if (arena.getState() != ArenaState.DISABLED) {
+            // Either it is already enabled, or a disabled arena is still finishing its reset.
             MessageUtil.send(sender, arena.isEnabled() ? "messages.already-enabled" : "messages.arena-active",
                     "%arena%", arena.getName());
             return;
         }
 
+        // Never enable an arena silently when something is wrong. Tell the admin exactly what.
         List<String> problems = arena.getProblems(Bukkit.getWorld(arena.getWorldName()) != null);
         if (!problems.isEmpty()) {
             MessageUtil.send(sender, "messages.arena-not-ready", "%arena%", arena.getName());
@@ -529,6 +553,7 @@ public class BridgeCommand implements CommandExecutor {
         MessageUtil.send(sender, "messages.usage", "%command%", usage);
     }
 
+    /** Finds an arena and tells the sender when it does not exist. Returns null in that case. */
     private Arena findArena(CommandSender sender, String name) {
         Arena arena = arenaManager.get(name);
         if (arena == null) {
@@ -537,6 +562,12 @@ public class BridgeCommand implements CommandExecutor {
         return arena;
     }
 
+    /**
+     * For setup commands that need a player: checks the sender, the arguments, that the arena exists
+     * and that it is disabled. Returns null (after telling the sender why) when something is wrong.
+     *
+     * @param minArgs how many words the command needs, including the sub command itself
+     */
     private Arena findEditableArena(CommandSender sender, String[] args, String usage, int minArgs) {
         if (!(sender instanceof Player)) {
             MessageUtil.send(sender, "messages.player-only");
@@ -581,6 +612,7 @@ public class BridgeCommand implements CommandExecutor {
         return false;
     }
 
+    /** Returns the number, or null after telling the sender that it is invalid. */
     private Integer parseNumber(CommandSender sender, String text, int min, int max) {
         try {
             int value = Integer.parseInt(text);

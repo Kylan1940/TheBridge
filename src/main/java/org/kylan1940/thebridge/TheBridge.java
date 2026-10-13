@@ -10,6 +10,7 @@ import org.kylan1940.thebridge.arena.ArenaState;
 import org.kylan1940.thebridge.command.BridgeCommand;
 import org.kylan1940.thebridge.command.BridgeTabCompleter;
 import org.kylan1940.thebridge.config.GameSettings;
+import org.kylan1940.thebridge.gui.SetupMenuListener;
 import org.kylan1940.thebridge.listener.BlockListener;
 import org.kylan1940.thebridge.listener.PlayerListener;
 import org.kylan1940.thebridge.match.MatchManager;
@@ -58,9 +59,13 @@ public final class TheBridge extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BlockListener(this, arenaManager, matchManager, arenaResetter), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(this, arenaManager, matchManager), this);
 
+        getServer().getPluginManager().registerEvents(new SetupMenuListener(this), this);
+
         getCommand("thebridge").setExecutor(new BridgeCommand(this, arenaManager, matchManager, statsManager));
         getCommand("thebridge").setTabCompleter(new BridgeTabCompleter(this, arenaManager));
 
+        // Wait one tick: by then every other plugin (for example a world manager) has loaded its worlds,
+        // so arena worlds can be found.
         getServer().getScheduler().runTask(this, this::activateArenas);
 
         getLogger().info("TheBridge enabled.");
@@ -103,6 +108,7 @@ public final class TheBridge extends JavaPlugin {
             }
         }
 
+        // Players that were online while the server crashed in the middle of a match (rare, but possible with /reload).
         for (Player player : Bukkit.getOnlinePlayers()) {
             matchManager.recoverAfterCrash(player);
         }
