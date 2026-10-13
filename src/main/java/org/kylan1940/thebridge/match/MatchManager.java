@@ -501,9 +501,14 @@ public class MatchManager {
         }
         Arena arena = match.getArena();
 
-        // Frozen (countdown): looking around and jumping is fine, walking is not.
+        // Frozen (countdown): looking around is fine, but the player may not move at all.
+        // Y is included on purpose: a spawn point in the air (a cage, or no floor yet) would
+        // otherwise let the player fall during the countdown. Cancelling the move keeps the
+        // player hanging in place, so no glass has to be placed and broken.
         if (match.isFrozen()) {
-            return from.getX() != to.getX() || from.getZ() != to.getZ();
+            // A cancelled fall still builds up fall distance, which would hurt right after the countdown.
+            player.setFallDistance(0);
+            return from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ();
         }
         if (arena.getState() != ArenaState.IN_GAME || match.isFinished() || match.isRespawning(uuid)) {
             return false;
