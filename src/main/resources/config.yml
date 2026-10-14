@@ -246,6 +246,7 @@ messages:
   # Commands. Placeholders: %arena% %player% %error% %command% %label%
   usage: "%prefix%&cUsage: %command%"
   unknown-command: "%prefix%&cUnknown command. Use &e/thebridge help&c."
+  no-free-arena: "%prefix%&cThere is no free arena right now. Try again in a moment."
   unknown-arena: "%prefix%&cThere is no arena called &e%arena%&c."
   arena-exists: "%prefix%&cAn arena with that name already exists, or the name is invalid (letters, numbers, - and _ only, max 32)."
   arena-created: "%prefix%&aArena &e%arena% &acreated in world &e%world%&a. Next: &e/thebridge help &7(setup steps)"
@@ -291,7 +292,7 @@ messages:
     - "&8&m                                    "
     - "&6&lTheBridge &7commands"
     - "&e/thebridge list &7- show all arenas"
-    - "&e/thebridge join <arena> &7- join an arena"
+    - "&e/thebridge join [arena] &7- join an arena (a random free one if you leave it out)"
     - "&e/thebridge leave &7- leave your match"
     - "&e/thebridge stats [player] &7- show statistics"
   help-admin:

@@ -20,9 +20,11 @@ import org.kylan1940.thebridge.stats.PlayerStats;
 import org.kylan1940.thebridge.stats.StatsManager;
 import org.kylan1940.thebridge.utils.LocationUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class BridgeCommand implements CommandExecutor {
 
@@ -142,13 +144,23 @@ public class BridgeCommand implements CommandExecutor {
             MessageUtil.send(player, "messages.no-permission");
             return;
         }
+        Arena arena;
         if (args.length < 2) {
-            sendUsage(player, "/thebridge join <arena>");
-            return;
-        }
-        Arena arena = findArena(player, args[1]);
-        if (arena == null) {
-            return;
+            // No arena typed: pick one for the player.
+            if (matchManager.isInMatch(player.getUniqueId())) {
+                MessageUtil.send(player, "messages.already-in-match");
+                return;
+            }
+            arena = pickRandomArena();
+            if (arena == null) {
+                MessageUtil.send(player, "messages.no-free-arena");
+                return;
+            }
+        } else {
+            arena = findArena(player, args[1]);
+            if (arena == null) {
+                return;
+            }
         }
 
         MatchManager.JoinResult result = matchManager.join(player, arena);
@@ -158,6 +170,32 @@ public class BridgeCommand implements CommandExecutor {
             case FULL -> MessageUtil.send(player, "messages.arena-full");
             case UNAVAILABLE -> MessageUtil.send(player, "messages.arena-unavailable", "%arena%", arena.getName());
         }
+    }
+
+    // A random arena that can be joined right now. Arenas that already have players come first, so two
+    // players who both type /thebridge join end up together instead of waiting in two empty arenas.
+    private Arena pickRandomArena() {
+        List<Arena> withPlayers = new ArrayList<>();
+        List<Arena> empty = new ArrayList<>();
+        for (Arena arena : arenaManager.getAll()) {
+            if (!arena.getState().isJoinable()) {
+                continue;
+            }
+            Match match = matchManager.getMatch(arena);
+            if (match != null && match.isFull()) {
+                continue;
+            }
+            if (match != null && match.getPlayerCount() > 0) {
+                withPlayers.add(arena);
+            } else {
+                empty.add(arena);
+            }
+        }
+        List<Arena> choices = withPlayers.isEmpty() ? empty : withPlayers;
+        if (choices.isEmpty()) {
+            return null;
+        }
+        return choices.get(ThreadLocalRandom.current().nextInt(choices.size()));
     }
 
     private void leave(CommandSender sender) {

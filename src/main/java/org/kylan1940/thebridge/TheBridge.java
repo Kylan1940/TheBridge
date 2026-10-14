@@ -11,6 +11,7 @@ import org.kylan1940.thebridge.command.BridgeCommand;
 import org.kylan1940.thebridge.command.BridgeTabCompleter;
 import org.kylan1940.thebridge.config.GameSettings;
 import org.kylan1940.thebridge.gui.SetupMenuListener;
+import org.kylan1940.thebridge.hook.TheBridgeExpansion;
 import org.kylan1940.thebridge.listener.BlockListener;
 import org.kylan1940.thebridge.listener.PlayerListener;
 import org.kylan1940.thebridge.match.MatchManager;
@@ -31,6 +32,7 @@ public final class TheBridge extends JavaPlugin {
     private EquipmentGiver equipmentGiver;
     private StatsManager statsManager;
     private MatchManager matchManager;
+    private TheBridgeExpansion placeholders;
 
     @Override
     public void onEnable() {
@@ -68,11 +70,16 @@ public final class TheBridge extends JavaPlugin {
         // so arena worlds can be found.
         getServer().getScheduler().runTask(this, this::activateArenas);
 
+        hookPlaceholderApi();
+
         getLogger().info("TheBridge enabled.");
     }
 
     @Override
     public void onDisable() {
+        if (placeholders != null) {
+            placeholders.unregister();
+        }
         if (matchManager != null) {
             matchManager.shutdown();
         }
@@ -112,6 +119,17 @@ public final class TheBridge extends JavaPlugin {
         for (Player player : Bukkit.getOnlinePlayers()) {
             matchManager.recoverAfterCrash(player);
         }
+    }
+
+    // PlaceholderAPI is optional. The expansion class is only touched when the plugin is installed,
+    // so the server does not need PlaceholderAPI to run TheBridge.
+    private void hookPlaceholderApi() {
+        if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return;
+        }
+        placeholders = new TheBridgeExpansion(this, arenaManager, matchManager, statsManager);
+        placeholders.register();
+        getLogger().info("PlaceholderAPI found: %thebridge_...% placeholders are available.");
     }
 
     public void reload() {

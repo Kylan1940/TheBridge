@@ -48,7 +48,7 @@ Main command: `/thebridge` (aliases: `/tb`, `/bridge`)
 |------------------------------------------|---------------------------------------------------------------|-------------------|
 | `/thebridge help`                        | Show the commands                                             | none              |
 | `/thebridge list`                        | List arenas with state and players                            | `thebridge.join`  |
-| `/thebridge join <arena>`                | Join an arena                                                 | `thebridge.join`  |
+| `/thebridge join [arena]`                | Join an arena (random free one if no name)                                                 | `thebridge.join`  |
 | `/thebridge leave`                       | Leave your match                                              | `thebridge.leave` |
 | `/thebridge stats [player]`              | Show statistics                                               | `thebridge.stats` |
 | `/thebridge create <arena>`              | Create an arena in your current world                         | `thebridge.admin` |
@@ -141,6 +141,41 @@ Crash safety: the list of changed blocks is saved to `plugins/TheBridge/journals
 
 # Statistics
 SQLite file `plugins/TheBridge/stats.db`. All database work runs on one background thread, so the server never waits for the disk. A database problem is logged and never stops a match. The storage code is behind the `Storage` interface so MySQL/MariaDB can be added later; only SQLite exists now.
+
+# PlaceholderAPI
+Optional. If [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) is installed, TheBridge registers itself automatically (no `/papi ecloud download` needed). Use the placeholders in scoreboards, tab lists, holograms and chat plugins.
+
+Placeholders of the match a player is in (empty when the player is not in a match, so a scoreboard can hide the lines):
+
+| Placeholder                          | Value                                                     |
+|--------------------------------------|-----------------------------------------------------------|
+| `%thebridge_in_game%`                | `true` or `false`                                         |
+| `%thebridge_arena%`                  | Arena name                                                |
+| `%thebridge_state%`                  | `WAITING`, `STARTING`, `IN_GAME`, `ENDING`, `RESETTING`   |
+| `%thebridge_team%`                   | `Red` or `Blue`                                           |
+| `%thebridge_team_colored%`           | Same with colour code, for example `&cRed`                |
+| `%thebridge_players%` / `%thebridge_max_players%` | Players in the match / the arena maximum     |
+| `%thebridge_score_red%` / `%thebridge_score_blue%` | Goals of each team                          |
+| `%thebridge_score_own%` / `%thebridge_score_enemy%` | Goals of the player's team / the other team |
+| `%thebridge_score_limit%`            | Goals needed to win                                       |
+| `%thebridge_countdown%`              | Seconds of the running countdown                          |
+| `%thebridge_time_left%`              | Seconds left (0 outside a running round)                  |
+| `%thebridge_time_left_formatted%`    | Same as `mm:ss`                                           |
+| `%thebridge_match_goals%` / `%thebridge_match_kills%` / `%thebridge_match_deaths%` | The player's numbers in this match |
+
+Lifetime statistics (any player, online or not; needs `stats.enabled`):
+`%thebridge_stats_wins%`, `_losses`, `_goals`, `_kills`, `_deaths`, `_matches`, `_winstreak`, `_beststreak`, `_kd`, `_winrate`, for example `%thebridge_stats_wins%`.
+Stats are read in the background and kept for 10 seconds, so a player's very first request can show `0` for a moment.
+
+Server wide:
+
+| Placeholder                          | Value                                                     |
+|--------------------------------------|-----------------------------------------------------------|
+| `%thebridge_total_players%`          | Players in any match                                      |
+| `%thebridge_arenas_available%`       | Arenas that can be joined right now                       |
+| `%thebridge_arena_players_<arena>%`  | Players in that arena                                     |
+| `%thebridge_arena_max_<arena>%`      | Maximum players of that arena                             |
+| `%thebridge_arena_state_<arena>%`    | State of that arena                                       |
 
 # Building
 Requirements: JDK 21 and Maven.
