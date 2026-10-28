@@ -69,7 +69,7 @@ Main command: `/thebridge` (aliases: `/tb`, `/bridge`)
 | `thebridge.bypass` | OP      | Build/break inside an arena that is **empty and waiting** (for editing the map). It never works for players in a match or inside an arena with a match, on purpose. |
 
 # Arena setup example
-<iframe width="560" height="315" src="https://www.youtube.com/embed/K7gmqyFrRQ0?si=llwLFohNFrPUQxF1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+[![Watch the video](https://img.youtube.com/vi/K7gmqyFrRQ0/maxresdefault.jpg)](https://www.youtube.com/watch?v=K7gmqyFrRQ0)
 
 Build your map first (two islands, a void in between, a goal on each side). Then, standing in the map's world:
 
