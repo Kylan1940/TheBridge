@@ -37,6 +37,14 @@ public final class TheBridge extends JavaPlugin {
     @Override
     public void onEnable() {
 
+        // BlockData (used to restore the arena) exists since Minecraft 1.13. On an older server the plugin
+        // would fail later with a confusing error, so it says clearly what is wrong and switches itself off.
+        if (!isClassAvailable("org.bukkit.block.data.BlockData")) {
+            getLogger().severe("TheBridge needs Minecraft 1.13 or newer. This server is too old, so the plugin is disabled.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
         instance = this;
 
         saveDefaultConfig();
@@ -92,6 +100,15 @@ public final class TheBridge extends JavaPlugin {
         getLogger().info("TheBridge disabled.");
 
         instance = null;
+    }
+
+    private boolean isClassAvailable(String className) {
+        try {
+            Class.forName(className);
+            return true;
+        } catch (ClassNotFoundException exception) {
+            return false;
+        }
     }
 
     private void activateArenas() {

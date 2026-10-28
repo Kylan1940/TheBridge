@@ -106,10 +106,10 @@ public class BlockTrackerTest {
     @Test
     public void damagedJournalLinesAreSkipped() throws Exception {
         File file = folder.newFile("broken.journal");
-        java.nio.file.Files.writeString(file.toPath(),
-                "world\t1\t2\t3\tminecraft:air\n"
+        java.nio.file.Files.write(file.toPath(),
+                ("world\t1\t2\t3\tminecraft:air\n"
                         + "garbage line\n"
-                        + "world\tx\ty\tz\tminecraft:stone\n");
+                        + "world\tx\ty\tz\tminecraft:stone\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
         BlockTracker loaded = BlockTracker.loadFrom(file);
         assertEquals(1, loaded.size());
     }

@@ -21,6 +21,9 @@ import org.kylan1940.thebridge.stats.StatsManager;
 import org.kylan1940.thebridge.utils.LocationUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -28,12 +31,14 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class BridgeCommand implements CommandExecutor {
 
-    public static final Set<String> ADMIN_COMMANDS = Set.of(
+    public static final Set<String> ADMIN_COMMANDS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
             "create", "setup", "delete", "setspawn", "setgoal", "setlobby", "setbounds", "pos1", "pos2",
             "teamsize", "scorelimit", "duration", "enable", "disable", "stop", "info", "reload"
-    );
+    )));
 
-    public static final Set<String> PLAYER_COMMANDS = Set.of("join", "leave", "list", "stats", "help");
+    public static final Set<String> PLAYER_COMMANDS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+            "join", "leave", "list", "stats", "help"
+    )));
 
     private final TheBridge plugin;
     private final ArenaManager arenaManager;
@@ -73,31 +78,77 @@ public class BridgeCommand implements CommandExecutor {
         }
 
         switch (sub) {
-            case "help" -> sendHelp(sender);
-            case "list" -> list(sender);
-            case "join" -> join(sender, args);
-            case "leave" -> leave(sender);
-            case "stats" -> stats(sender, args);
+            case "help":
+                sendHelp(sender);
+                break;
+            case "list":
+                list(sender);
+                break;
+            case "join":
+                join(sender, args);
+                break;
+            case "leave":
+                leave(sender);
+                break;
+            case "stats":
+                stats(sender, args);
+                break;
 
-            case "create" -> create(sender, args);
-            case "setup" -> setup(sender, args);
-            case "delete" -> delete(sender, args);
-            case "setlobby" -> setLobby(sender, args);
-            case "setspawn" -> setSpawn(sender, args);
-            case "setgoal" -> setGoal(sender, args);
-            case "setbounds" -> setBounds(sender, args);
-            case "pos1" -> setPosition(sender, 0);
-            case "pos2" -> setPosition(sender, 1);
-            case "teamsize" -> setTeamSize(sender, args);
-            case "scorelimit" -> setScoreLimit(sender, args);
-            case "duration" -> setDuration(sender, args);
-            case "enable" -> enable(sender, args);
-            case "disable" -> disable(sender, args);
-            case "stop" -> stop(sender, args);
-            case "info" -> info(sender, args);
-            case "reload" -> reload(sender);
+            case "create":
+                create(sender, args);
+                break;
+            case "setup":
+                setup(sender, args);
+                break;
+            case "delete":
+                delete(sender, args);
+                break;
+            case "setlobby":
+                setLobby(sender, args);
+                break;
+            case "setspawn":
+                setSpawn(sender, args);
+                break;
+            case "setgoal":
+                setGoal(sender, args);
+                break;
+            case "setbounds":
+                setBounds(sender, args);
+                break;
+            case "pos1":
+                setPosition(sender, 0);
+                break;
+            case "pos2":
+                setPosition(sender, 1);
+                break;
+            case "teamsize":
+                setTeamSize(sender, args);
+                break;
+            case "scorelimit":
+                setScoreLimit(sender, args);
+                break;
+            case "duration":
+                setDuration(sender, args);
+                break;
+            case "enable":
+                enable(sender, args);
+                break;
+            case "disable":
+                disable(sender, args);
+                break;
+            case "stop":
+                stop(sender, args);
+                break;
+            case "info":
+                info(sender, args);
+                break;
+            case "reload":
+                reload(sender);
+                break;
 
-            default -> MessageUtil.send(sender, "messages.unknown-command");
+            default:
+                MessageUtil.send(sender, "messages.unknown-command");
+                break;
         }
         return true;
     }
@@ -136,10 +187,11 @@ public class BridgeCommand implements CommandExecutor {
     }
 
     private void join(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof Player)) {
             MessageUtil.send(sender, "messages.player-only");
             return;
         }
+        Player player = (Player) sender;
         if (!player.hasPermission("thebridge.join")) {
             MessageUtil.send(player, "messages.no-permission");
             return;
@@ -165,10 +217,18 @@ public class BridgeCommand implements CommandExecutor {
 
         MatchManager.JoinResult result = matchManager.join(player, arena);
         switch (result) {
-            case JOINED -> MessageUtil.send(player, "messages.joined-arena", "%arena%", arena.getName());
-            case ALREADY_IN_MATCH -> MessageUtil.send(player, "messages.already-in-match");
-            case FULL -> MessageUtil.send(player, "messages.arena-full");
-            case UNAVAILABLE -> MessageUtil.send(player, "messages.arena-unavailable", "%arena%", arena.getName());
+            case JOINED:
+                MessageUtil.send(player, "messages.joined-arena", "%arena%", arena.getName());
+                break;
+            case ALREADY_IN_MATCH:
+                MessageUtil.send(player, "messages.already-in-match");
+                break;
+            case FULL:
+                MessageUtil.send(player, "messages.arena-full");
+                break;
+            case UNAVAILABLE:
+                MessageUtil.send(player, "messages.arena-unavailable", "%arena%", arena.getName());
+                break;
         }
     }
 
@@ -199,10 +259,11 @@ public class BridgeCommand implements CommandExecutor {
     }
 
     private void leave(CommandSender sender) {
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof Player)) {
             MessageUtil.send(sender, "messages.player-only");
             return;
         }
+        Player player = (Player) sender;
         if (!player.hasPermission("thebridge.leave")) {
             MessageUtil.send(player, "messages.no-permission");
             return;
@@ -234,10 +295,11 @@ public class BridgeCommand implements CommandExecutor {
             return;
         }
 
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof Player)) {
             sendUsage(sender, "/thebridge stats <player>");
             return;
         }
+        Player player = (Player) sender;
         statsManager.loadByUuid(player.getUniqueId(),
                 result -> showStats(sender, player.getName(), result),
                 () -> MessageUtil.send(sender, "messages.stats-unavailable"));
@@ -273,10 +335,11 @@ public class BridgeCommand implements CommandExecutor {
     // ------------------------------------------------------------------
 
     private void create(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof Player)) {
             MessageUtil.send(sender, "messages.player-only");
             return;
         }
+        Player player = (Player) sender;
         if (args.length < 2) {
             sendUsage(player, "/thebridge create <arena>");
             return;
@@ -294,10 +357,11 @@ public class BridgeCommand implements CommandExecutor {
 
     // Opens the setup menu. Every button inside runs one of the commands below.
     private void setup(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof Player)) {
             MessageUtil.send(sender, "messages.player-only");
             return;
         }
+        Player player = (Player) sender;
         if (args.length < 2) {
             sendUsage(player, "/thebridge setup <arena>");
             return;
@@ -396,10 +460,11 @@ public class BridgeCommand implements CommandExecutor {
     }
 
     private void setPosition(CommandSender sender, int index) {
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof Player)) {
             MessageUtil.send(sender, "messages.player-only");
             return;
         }
+        Player player = (Player) sender;
         Point point = LocationUtil.toPoint(player.getLocation());
         arenaManager.setSelection(player.getUniqueId(), index, point);
         MessageUtil.send(player, "messages.pos-set",
@@ -506,15 +571,20 @@ public class BridgeCommand implements CommandExecutor {
         arenaManager.save(arena);
 
         switch (arena.getState()) {
-            case WAITING, STARTING -> {
+            case WAITING:
+            case STARTING: {
                 matchManager.kickAll(arena);
                 if (arena.getState() != ArenaState.DISABLED) {
                     arena.setState(ArenaState.DISABLED);
                 }
+                break;
             }
-            case IN_GAME -> matchManager.stop(arena);
-            default -> {
+            case IN_GAME:
+                matchManager.stop(arena);
+                break;
+            default: {
                 // DISABLED already, or ENDING / RESETTING which become DISABLED by themselves.
+                break;
             }
         }
         MessageUtil.send(sender, "messages.arena-disabled", "%arena%", arena.getName());

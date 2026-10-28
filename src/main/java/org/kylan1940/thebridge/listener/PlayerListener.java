@@ -3,7 +3,6 @@ package org.kylan1940.thebridge.listener;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.entity.Entity;
@@ -39,6 +38,13 @@ import org.kylan1940.thebridge.message.MessageUtil;
 
 import java.util.Locale;
 
+/**
+ * Everything that happens TO a player: moving (goals and the void), taking damage, dying,
+ * quitting, dropping items, running commands...
+ *
+ * The listener contains almost no game logic. It checks "is this player in a match?" and then
+ * asks MatchManager or Match what to do. Players who are not in a match are never affected.
+ */
 public class PlayerListener implements Listener {
 
     private final TheBridge plugin;
@@ -96,6 +102,7 @@ public class PlayerListener implements Listener {
         }
     }
 
+    /** No teleporting out of the arena with pearls, chorus fruit, commands or the spectator menu. */
     @EventHandler(ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent event) {
         if (!matchManager.isInMatch(event.getPlayer().getUniqueId())) {
@@ -105,8 +112,15 @@ public class PlayerListener implements Listener {
         // is CONSUMABLE_EFFECT in newer ones. Writing both names directly would not compile on one of them.
         // Teleports made by plugins (including TheBridge itself) are fine.
         switch (event.getCause().name()) {
-            case "ENDER_PEARL", "CHORUS_FRUIT", "CONSUMABLE_EFFECT", "COMMAND", "SPECTATE" -> event.setCancelled(true);
-            default -> {
+            case "ENDER_PEARL":
+            case "CHORUS_FRUIT":
+            case "CONSUMABLE_EFFECT":
+            case "COMMAND":
+            case "SPECTATE":
+                event.setCancelled(true);
+                break;
+            default: {
+                break;
             }
         }
     }
@@ -115,13 +129,21 @@ public class PlayerListener implements Listener {
     // Damage and death
     // ------------------------------------------------------------------
 
+    /**
+     * All damage to players in a match goes through here.
+     * (EntityDamageByEntityEvent is a kind of EntityDamageEvent, so one method handles both.)
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent event) {
-        if (!(event.getEntity() instanceof Player victim)) {
+        if (!(event.getEntity() instanceof Player)) {
             return;
         }
+        Player victim = (Player) event.getEntity();
         Match match = matchManager.getMatch(victim.getUniqueId());
-        Player attacker = event instanceof EntityDamageByEntityEvent byEntity ? getAttacker(byEntity.getDamager()) : null;
+        Player attacker = null;
+        if (event instanceof EntityDamageByEntityEvent) {
+            attacker = getAttacker(((EntityDamageByEntityEvent) event).getDamager());
+        }
 
         // Nobody from outside may hurt a player in a match, and players in a match may not hurt outsiders.
         if (match == null) {
@@ -162,15 +184,22 @@ public class PlayerListener implements Listener {
     }
 
     private Player getAttacker(Entity damager) {
-        if (damager instanceof Player player) {
-            return player;
+        if (damager instanceof Player) {
+            return (Player) damager;
         }
-        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Player shooter) {
-            return shooter;
+        if (damager instanceof Projectile) {
+            Object shooter = ((Projectile) damager).getShooter();
+            if (shooter instanceof Player) {
+                return (Player) shooter;
+            }
         }
         return null;
     }
 
+    /**
+     * Safety net. Some deaths cannot be cancelled in onDamage (for example /kill). The player
+     * still keeps everything, is brought back at once and then handled like a normal death.
+     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
@@ -213,23 +242,24 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPickup(EntityPickupItemEvent event) {
-        if (event.getEntity() instanceof Player player && matchManager.isInMatch(player.getUniqueId())) {
+        if (event.getEntity() instanceof Player && matchManager.isInMatch(event.getEntity().getUniqueId())) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onHunger(FoodLevelChangeEvent event) {
-        if (event.getEntity() instanceof Player player && matchManager.isInMatch(player.getUniqueId())) {
+        if (event.getEntity() instanceof Player && matchManager.isInMatch(event.getEntity().getUniqueId())) {
             event.setCancelled(true);
-            player.setFoodLevel(20);
+            ((Player) event.getEntity()).setFoodLevel(20);
         }
     }
 
+    /** Armour cannot be taken off. */
     @EventHandler(ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getWhoClicked() instanceof Player player
-                && matchManager.isInMatch(player.getUniqueId())
+        if (event.getWhoClicked() instanceof Player
+                && matchManager.isInMatch(event.getWhoClicked().getUniqueId())
                 && event.getSlotType() == InventoryType.SlotType.ARMOR) {
             event.setCancelled(true);
         }
@@ -239,6 +269,7 @@ public class PlayerListener implements Listener {
     // Interaction
     // ------------------------------------------------------------------
 
+    /** Players in a match cannot open chests, doors and so on, and cannot trample things. */
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
         if (!matchManager.isInMatch(event.getPlayer().getUniqueId())) {
@@ -257,13 +288,15 @@ public class PlayerListener implements Listener {
 
     private boolean isUsableBlock(Block block) {
         Material type = block.getType();
+        // The names are checked instead of org.bukkit.Tag: several Tag constants do not exist on 1.13.
+        String name = type.name();
         return block.getState() instanceof Container
-                || Tag.DOORS.isTagged(type)
-                || Tag.TRAPDOORS.isTagged(type)
-                || Tag.FENCE_GATES.isTagged(type)
-                || Tag.BUTTONS.isTagged(type)
-                || Tag.BEDS.isTagged(type)
-                || Tag.ANVIL.isTagged(type)
+                || name.endsWith("_DOOR")
+                || name.endsWith("_TRAPDOOR")
+                || name.endsWith("_FENCE_GATE")
+                || name.endsWith("_BUTTON")
+                || name.endsWith("_BED")
+                || name.endsWith("ANVIL")
                 || type == Material.CRAFTING_TABLE
                 || type == Material.ENCHANTING_TABLE
                 || type == Material.ENDER_CHEST
@@ -283,6 +316,7 @@ public class PlayerListener implements Listener {
     // Commands
     // ------------------------------------------------------------------
 
+    /** During a match only /thebridge (and the commands listed in config.yml) can be used. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCommand(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();

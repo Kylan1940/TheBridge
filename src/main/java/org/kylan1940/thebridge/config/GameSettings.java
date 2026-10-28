@@ -9,6 +9,14 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.logging.Logger;
 
+/**
+ * The gameplay numbers from config.yml, read ONCE (at startup and on /thebridge reload).
+ *
+ * Why not read the config every time like MessageUtil does? Settings such as the
+ * allowed blocks are needed on every block placement. Parsing the material names
+ * again for every event would be wasteful, and this is also the one place where
+ * bad values are checked and fixed with a warning in the console.
+ */
 public class GameSettings {
 
     // match
@@ -84,6 +92,7 @@ public class GameSettings {
         debug = config.getBoolean("debug", false);
     }
 
+    /** Reads an int and keeps it between min and max. Out of range values are fixed and reported. */
     private static int number(FileConfiguration config, Logger logger, String path, int fallback, int min, int max) {
         int value = config.getInt(path, fallback);
         if (value < min || value > max) {

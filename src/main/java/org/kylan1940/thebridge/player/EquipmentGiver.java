@@ -16,9 +16,44 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Prepares a player for the lobby or for a round: clears them completely and gives the
+ * starting equipment from config.yml (equipment.items and equipment.armor).
+ *
+ * In an item "material" you can write {team}. It becomes RED or BLUE, so
+ * {team}_TERRACOTTA gives every team its own coloured blocks.
+ */
 public class EquipmentGiver {
 
-    private record ItemSpec(String material, int amount, int slot, boolean unbreakable) {
+    /** One entry of equipment.items, already checked. */
+    private static final class ItemSpec {
+        private final String material;
+        private final int amount;
+        private final int slot;
+        private final boolean unbreakable;
+
+        private ItemSpec(String material, int amount, int slot, boolean unbreakable) {
+            this.material = material;
+            this.amount = amount;
+            this.slot = slot;
+            this.unbreakable = unbreakable;
+        }
+
+        private String material() {
+            return material;
+        }
+
+        private int amount() {
+            return amount;
+        }
+
+        private int slot() {
+            return slot;
+        }
+
+        private boolean unbreakable() {
+            return unbreakable;
+        }
     }
 
     private final JavaPlugin plugin;
@@ -30,6 +65,7 @@ public class EquipmentGiver {
         this.plugin = plugin;
     }
 
+    /** Reads equipment from config.yml. Called on startup and on /thebridge reload. */
     public void load() {
         items.clear();
         giveArmor = plugin.getConfig().getBoolean("equipment.armor.enabled", true);
@@ -45,7 +81,7 @@ public class EquipmentGiver {
 
             // Check the name with a real team so typos show up at startup, not in the middle of a match.
             Material test = Material.matchMaterial(material.replace("{team}", "RED"));
-            if (test == null || !test.isItem() || test.isAir()) {
+            if (test == null || !test.isItem() || test == Material.AIR || test == Material.CAVE_AIR || test == Material.VOID_AIR) {
                 plugin.getLogger().warning("config.yml: equipment item '" + material + "' is not a valid item. Ignored.");
                 continue;
             }
@@ -60,17 +96,19 @@ public class EquipmentGiver {
     }
 
     private int readInt(Object value, int fallback) {
-        if (value instanceof Number number) {
-            return number.intValue();
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
         }
         return fallback;
     }
 
+    /** Lobby: empty inventory, full health, adventure mode (cannot build or break anything). */
     public void prepareForLobby(Player player) {
         resetPlayer(player);
         player.setGameMode(GameMode.ADVENTURE);
     }
 
+    /** Round: empty inventory, full health, survival mode and the configured equipment. */
     public void giveRoundEquipment(Player player, MatchTeam team) {
         resetPlayer(player);
         player.setGameMode(GameMode.SURVIVAL);
@@ -115,8 +153,8 @@ public class EquipmentGiver {
             return piece;
         }
         meta.setUnbreakable(true);
-        if (dyeArmor && meta instanceof LeatherArmorMeta leatherMeta) {
-            leatherMeta.setColor(team == MatchTeam.RED ? Color.RED : Color.BLUE);
+        if (dyeArmor && meta instanceof LeatherArmorMeta) {
+            ((LeatherArmorMeta) meta).setColor(team == MatchTeam.RED ? Color.RED : Color.BLUE);
         }
         piece.setItemMeta(meta);
         return piece;

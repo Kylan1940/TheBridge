@@ -8,6 +8,7 @@ import org.kylan1940.thebridge.stats.MatchRecord;
 import org.kylan1940.thebridge.stats.PlayerResult;
 import org.kylan1940.thebridge.stats.PlayerStats;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,7 +43,7 @@ public class SQLiteStorageTest {
 
     @Test
     public void firstMatchCreatesTheRows() throws Exception {
-        storage.saveMatch(record(), List.of(
+        storage.saveMatch(record(), Arrays.asList(
                 new PlayerResult(alice, "Alice", true, false, 3, 2, 1),
                 new PlayerResult(bob, "Bob", false, true, 1, 1, 2)
         ));
@@ -63,8 +64,8 @@ public class SQLiteStorageTest {
     @Test
     public void laterMatchesAreAddedUp() throws Exception {
         PlayerResult win = new PlayerResult(alice, "Alice", true, false, 3, 2, 1);
-        storage.saveMatch(record(), List.of(win));
-        storage.saveMatch(record(), List.of(win));
+        storage.saveMatch(record(), Arrays.asList(win));
+        storage.saveMatch(record(), Arrays.asList(win));
 
         PlayerStats a = storage.loadStats(alice);
         assertEquals(2, a.wins());
@@ -78,9 +79,9 @@ public class SQLiteStorageTest {
     public void lossResetsStreakButKeepsBest() throws Exception {
         PlayerResult win = new PlayerResult(alice, "Alice", true, false, 0, 0, 0);
         PlayerResult loss = new PlayerResult(alice, "Alice", false, true, 0, 0, 0);
-        storage.saveMatch(record(), List.of(win));
-        storage.saveMatch(record(), List.of(win));
-        storage.saveMatch(record(), List.of(loss));
+        storage.saveMatch(record(), Arrays.asList(win));
+        storage.saveMatch(record(), Arrays.asList(win));
+        storage.saveMatch(record(), Arrays.asList(loss));
 
         PlayerStats a = storage.loadStats(alice);
         assertEquals(0, a.winStreak());
@@ -91,8 +92,8 @@ public class SQLiteStorageTest {
     public void drawCountsAsPlayedAndKeepsTheStreak() throws Exception {
         PlayerResult win = new PlayerResult(alice, "Alice", true, false, 0, 0, 0);
         PlayerResult draw = new PlayerResult(alice, "Alice", false, false, 1, 0, 0);
-        storage.saveMatch(record(), List.of(win));
-        storage.saveMatch(record(), List.of(draw));
+        storage.saveMatch(record(), Arrays.asList(win));
+        storage.saveMatch(record(), Arrays.asList(draw));
 
         PlayerStats a = storage.loadStats(alice);
         assertEquals(2, a.matchesPlayed());
@@ -103,21 +104,21 @@ public class SQLiteStorageTest {
 
     @Test
     public void lookupByNameIgnoresCase() throws Exception {
-        storage.saveMatch(record(), List.of(new PlayerResult(alice, "Alice", true, false, 0, 0, 0)));
+        storage.saveMatch(record(), Arrays.asList(new PlayerResult(alice, "Alice", true, false, 0, 0, 0)));
         assertEquals(alice, storage.loadStatsByName("aLiCe").uuid());
     }
 
     @Test
     public void nameChangeIsStored() throws Exception {
-        storage.saveMatch(record(), List.of(new PlayerResult(alice, "OldName", true, false, 0, 0, 0)));
-        storage.saveMatch(record(), List.of(new PlayerResult(alice, "NewName", true, false, 0, 0, 0)));
+        storage.saveMatch(record(), Arrays.asList(new PlayerResult(alice, "OldName", true, false, 0, 0, 0)));
+        storage.saveMatch(record(), Arrays.asList(new PlayerResult(alice, "NewName", true, false, 0, 0, 0)));
         assertEquals("NewName", storage.loadStats(alice).name());
     }
 
     @Test
     public void weirdNamesCannotBreakTheQuery() throws Exception {
         String evil = "x'; DROP TABLE player_stats; --";
-        storage.saveMatch(record(), List.of(new PlayerResult(alice, evil, true, false, 0, 0, 0)));
+        storage.saveMatch(record(), Arrays.asList(new PlayerResult(alice, evil, true, false, 0, 0, 0)));
         assertEquals(evil, storage.loadStats(alice).name());
     }
 }

@@ -6,13 +6,13 @@
 
     <groupId>org.kylan1940</groupId>
     <artifactId>TheBridge</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
 
     <name>TheBridge</name>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -24,6 +24,10 @@
                 <version>3.13.0</version>
                 <configuration>
                     <release>${java.version}</release>
+                    <!-- Java 8 is old, so a newer JDK prints a "source value 8 is obsolete" warning. It still works. -->
+                    <compilerArgs>
+                        <arg>-Xlint:-options</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
             <!-- Runs the unit tests in src/test/java during "mvn package" -->
@@ -55,8 +59,8 @@
 
     <repositories>
         <repository>
-            <id>papermc-repo</id>
-            <url>https://repo.papermc.io/repository/maven-public/</url>
+            <id>spigot-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
         <repository>
             <id>sonatype</id>
@@ -64,21 +68,24 @@
         </repository>
         <repository>
             <id>placeholderapi</id>
-            <url>https://repo.extendedclip.com/releases/</url>
+            <url>https://repo.helpch.at/releases/</url>
         </repository>
     </repositories>
 
     <dependencies>
-        <!-- Paper API (it contains the Spigot API). The code only uses API that also exists on Spigot and
-             CraftBukkit (no Adventure, no Paper-only methods), so the plugin runs on those servers too.
-             The server provides the API and the SQLite driver at runtime. -->
+        <!-- Spigot API, compiled against the OLDEST supported version (1.13.2) on purpose: then the compiler refuses
+             every method that does not exist there, so one jar works from 1.13 up to the newest version.
+             The code only uses API that Spigot, Paper and CraftBukkit all have (no NMS, no Adventure, no Paper-only
+             methods). The server provides the API and the SQLite driver at runtime.
+             (Paper's own 1.13.2 API is com.destroystokyo.paper:paper-api, not io.papermc.paper.) -->
         <dependency>
-            <groupId>io.papermc.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.21-R0.1-SNAPSHOT</version>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>1.13.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
+        <!-- PlaceholderAPI is optional on the server (softdepend). It is only needed to compile the expansion. -->
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>

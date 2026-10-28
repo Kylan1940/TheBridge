@@ -248,4 +248,27 @@ public class MatchTest {
         assertEquals(1, match.getKills(alice));
         assertEquals(2, match.getDeaths(bob));
     }
+
+    // ---- solo test mode ----
+
+    @Test
+    public void soloTestModeStartsWithOnePlayer() {
+        Arena soloArena = new Arena("solo", "world");
+        soloArena.setTeamSize(1);
+        soloArena.setState(ArenaState.WAITING);
+        Match soloMatch = new Match(soloArena, 3, 600);
+
+        soloMatch.addPlayer(UUID.randomUUID(), "Solo");
+        assertFalse(soloMatch.isReadyToStart());
+
+        soloMatch.setSoloTest(true);
+        assertTrue(soloMatch.isReadyToStart());
+        assertEquals(1, soloMatch.getPlayersNeeded());
+    }
+
+    @Test
+    public void normalModeNeedsAFullArena() {
+        assertEquals(2, match.getPlayersNeeded());
+        assertTrue(match.isReadyToStart());
+    }
 }

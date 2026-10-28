@@ -21,15 +21,17 @@ public class SetupMenuListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onClick(InventoryClickEvent event) {
         // Only our own menu. Every other inventory is left alone.
-        if (!(event.getInventory().getHolder() instanceof SetupMenu menu)) {
+        if (!(event.getInventory().getHolder() instanceof SetupMenu)) {
             return;
         }
+        SetupMenu menu = (SetupMenu) event.getInventory().getHolder();
         // Nothing may be taken out, put in or moved, also not with shift click or the number keys.
         event.setCancelled(true);
 
-        if (!(event.getWhoClicked() instanceof Player player)) {
+        if (!(event.getWhoClicked() instanceof Player)) {
             return;
         }
+        Player player = (Player) event.getWhoClicked();
         // A click in the player's own inventory (the bottom part of the screen) does nothing.
         if (event.getClickedInventory() == null || event.getClickedInventory() != event.getInventory()) {
             return;

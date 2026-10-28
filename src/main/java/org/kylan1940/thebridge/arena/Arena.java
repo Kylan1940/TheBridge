@@ -5,24 +5,40 @@ import org.kylan1940.thebridge.match.MatchTeam;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Everything that describes one arena: where it is, where the teams spawn and
+ * where the goals are. It also remembers the arena's current state.
+ *
+ * This class only holds data and checks it. Saving to disk is done by ArenaManager
+ * and running a match is done by MatchManager.
+ */
 public class Arena {
 
     private final String name;
 
+    /** The world the arena lives in. */
     private String worldName;
+    /** Where players wait before the match. May be in another world. */
     private Point lobby;
 
     private Point redSpawn;
     private Point blueSpawn;
+    /** The goal that RED defends. A BLUE player entering it scores. */
     private Region redGoal;
     private Region blueGoal;
+    /** Everything outside this box is out of the arena. The bottom (minY) is the void kill height. */
     private Region bounds;
 
+    /** Players per team: 1 = 1v1, 2 = 2v2. */
     private int teamSize = 1;
+    /** 0 means "use the value from config.yml". */
     private int scoreLimit = 0;
+    /** In seconds. 0 means "use the value from config.yml". */
     private int durationSeconds = 0;
 
+    /** Saved to disk: did an admin enable this arena? */
     private boolean enabled = false;
+    /** Only lives in memory. */
     private ArenaState state = ArenaState.DISABLED;
 
     public Arena(String name, String worldName) {
@@ -38,6 +54,11 @@ public class Arena {
         return state;
     }
 
+    /**
+     * Moves the arena to a new state. Illegal jumps throw an exception on purpose:
+     * it means there is a bug in the match logic, and it is better to see it in the
+     * console than to silently run a broken match.
+     */
     public void setState(ArenaState newState) {
         if (state == newState) {
             return;
@@ -48,6 +69,7 @@ public class Arena {
         state = newState;
     }
 
+    /** Used while loading and for emergency cleanup. Skips the transition check. */
     public void forceState(ArenaState newState) {
         state = newState;
     }
@@ -65,7 +87,7 @@ public class Arena {
     public List<String> getProblems(boolean worldLoaded) {
         List<String> problems = new ArrayList<>();
 
-        if (worldName == null || worldName.isBlank()) {
+        if (worldName == null || worldName.trim().isEmpty()) {
             problems.add("No world is set.");
         } else if (!worldLoaded) {
             problems.add("World '" + worldName + "' is not loaded on this server.");
@@ -90,6 +112,7 @@ public class Arena {
             problems.add("Bounds are not set (/thebridge setbounds " + name + ").");
         }
 
+        // The checks below compare locations with each other, so they need everything.
         if (redSpawn == null || blueSpawn == null || redGoal == null || blueGoal == null || bounds == null) {
             return problems;
         }
@@ -132,6 +155,7 @@ public class Arena {
         }
     }
 
+    /** The goal that this team DEFENDS. */
     public Region getGoal(MatchTeam team) {
         return team == MatchTeam.RED ? redGoal : blueGoal;
     }

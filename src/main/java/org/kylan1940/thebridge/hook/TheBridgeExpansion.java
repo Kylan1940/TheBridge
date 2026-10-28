@@ -38,7 +38,22 @@ public class TheBridgeExpansion extends PlaceholderExpansion {
     private final Map<UUID, CachedStats> cache = new ConcurrentHashMap<>();
     private final Set<UUID> loading = ConcurrentHashMap.newKeySet();
 
-    private record CachedStats(PlayerStats stats, long time) {
+    private static final class CachedStats {
+        private final PlayerStats stats;
+        private final long time;
+
+        private CachedStats(PlayerStats stats, long time) {
+            this.stats = stats;
+            this.time = time;
+        }
+
+        private PlayerStats stats() {
+            return stats;
+        }
+
+        private long time() {
+            return time;
+        }
     }
 
     public TheBridgeExpansion(TheBridge plugin, ArenaManager arenaManager, MatchManager matchManager, StatsManager statsManager) {
@@ -115,12 +130,16 @@ public class TheBridgeExpansion extends PlaceholderExpansion {
                 return "";
             }
             Match match = matchManager.getMatch(arena);
-            return switch (rest.substring(0, underscore)) {
-                case "players" -> String.valueOf(match == null ? 0 : match.getPlayerCount());
-                case "max" -> String.valueOf(arena.getMaxPlayers());
-                case "state" -> arena.getState().name();
-                default -> null;
-            };
+            switch (rest.substring(0, underscore)) {
+                case "players":
+                    return String.valueOf(match == null ? 0 : match.getPlayerCount());
+                case "max":
+                    return String.valueOf(arena.getMaxPlayers());
+                case "state":
+                    return arena.getState().name();
+                default:
+                    return null;
+            }
         }
 
         // ----- Lifetime statistics: %thebridge_stats_wins% and so on -----
@@ -148,26 +167,44 @@ public class TheBridgeExpansion extends PlaceholderExpansion {
         MatchTeam team = match.getTeam(uuid);
         boolean playing = match.getArena().getState() == ArenaState.IN_GAME;
 
-        return switch (params) {
-            case "arena" -> match.getArena().getName();
-            case "state" -> match.getArena().getState().name();
-            case "team" -> team == null ? "" : team.getDisplayName();
-            case "team_colored" -> team == null ? "" : team.getColoredName();
-            case "players" -> String.valueOf(match.getPlayerCount());
-            case "max_players" -> String.valueOf(match.getArena().getMaxPlayers());
-            case "score_red" -> String.valueOf(match.getScore(MatchTeam.RED));
-            case "score_blue" -> String.valueOf(match.getScore(MatchTeam.BLUE));
-            case "score_own" -> team == null ? "0" : String.valueOf(match.getScore(team));
-            case "score_enemy" -> team == null ? "0" : String.valueOf(match.getScore(team.opposite()));
-            case "score_limit" -> String.valueOf(match.getScoreLimit());
-            case "countdown" -> String.valueOf(match.getCountdown());
-            case "time_left" -> String.valueOf(playing ? match.getSecondsLeft() : 0);
-            case "time_left_formatted" -> formatTime(playing ? match.getSecondsLeft() : 0);
-            case "match_goals" -> String.valueOf(match.getGoals(uuid));
-            case "match_kills" -> String.valueOf(match.getKills(uuid));
-            case "match_deaths" -> String.valueOf(match.getDeaths(uuid));
-            default -> null;
-        };
+        switch (params) {
+            case "arena":
+                return match.getArena().getName();
+            case "state":
+                return match.getArena().getState().name();
+            case "team":
+                return team == null ? "" : team.getDisplayName();
+            case "team_colored":
+                return team == null ? "" : team.getColoredName();
+            case "players":
+                return String.valueOf(match.getPlayerCount());
+            case "max_players":
+                return String.valueOf(match.getArena().getMaxPlayers());
+            case "score_red":
+                return String.valueOf(match.getScore(MatchTeam.RED));
+            case "score_blue":
+                return String.valueOf(match.getScore(MatchTeam.BLUE));
+            case "score_own":
+                return team == null ? "0" : String.valueOf(match.getScore(team));
+            case "score_enemy":
+                return team == null ? "0" : String.valueOf(match.getScore(team.opposite()));
+            case "score_limit":
+                return String.valueOf(match.getScoreLimit());
+            case "countdown":
+                return String.valueOf(match.getCountdown());
+            case "time_left":
+                return String.valueOf(playing ? match.getSecondsLeft() : 0);
+            case "time_left_formatted":
+                return formatTime(playing ? match.getSecondsLeft() : 0);
+            case "match_goals":
+                return String.valueOf(match.getGoals(uuid));
+            case "match_kills":
+                return String.valueOf(match.getKills(uuid));
+            case "match_deaths":
+                return String.valueOf(match.getDeaths(uuid));
+            default:
+                return null;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -182,23 +219,33 @@ public class TheBridgeExpansion extends PlaceholderExpansion {
         int kills = stats == null ? 0 : stats.kills();
         int deaths = stats == null ? 0 : stats.deaths();
 
-        return switch (name) {
-            case "wins" -> String.valueOf(wins);
-            case "losses" -> String.valueOf(losses);
-            case "goals" -> String.valueOf(stats == null ? 0 : stats.goals());
-            case "kills" -> String.valueOf(kills);
-            case "deaths" -> String.valueOf(deaths);
-            case "matches" -> String.valueOf(stats == null ? 0 : stats.matchesPlayed());
-            case "winstreak" -> String.valueOf(stats == null ? 0 : stats.winStreak());
-            case "beststreak" -> String.valueOf(stats == null ? 0 : stats.bestWinStreak());
+        switch (name) {
+            case "wins":
+                return String.valueOf(wins);
+            case "losses":
+                return String.valueOf(losses);
+            case "goals":
+                return String.valueOf(stats == null ? 0 : stats.goals());
+            case "kills":
+                return String.valueOf(kills);
+            case "deaths":
+                return String.valueOf(deaths);
+            case "matches":
+                return String.valueOf(stats == null ? 0 : stats.matchesPlayed());
+            case "winstreak":
+                return String.valueOf(stats == null ? 0 : stats.winStreak());
+            case "beststreak":
+                return String.valueOf(stats == null ? 0 : stats.bestWinStreak());
             // Same calculation as /thebridge stats: with 0 deaths the ratio is just the kills.
-            case "kd" -> String.format(Locale.ROOT, "%.2f", deaths == 0 ? (double) kills : (double) kills / deaths);
-            case "winrate" -> {
+            case "kd":
+                return String.format(Locale.ROOT, "%.2f", deaths == 0 ? (double) kills : (double) kills / deaths);
+            case "winrate": {
                 int games = wins + losses;
-                yield String.format(Locale.ROOT, "%.1f", games == 0 ? 0.0 : wins * 100.0 / games);
+                return String.format(Locale.ROOT, "%.1f", games == 0 ? 0.0 : wins * 100.0 / games);
             }
-            default -> null;
-        };
+            default:
+                return null;
+        }
     }
 
     // Returns what is known right now (or null) and starts a background refresh when it is old.

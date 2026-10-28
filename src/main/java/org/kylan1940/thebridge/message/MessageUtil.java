@@ -9,8 +9,21 @@ import org.bukkit.entity.Player;
 import org.kylan1940.thebridge.TheBridge;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
+/**
+ * Sends the messages written in config.yml. Used exactly like in your other plugins:
+ *
+ *     MessageUtil.send(player, "messages.arena-full", "%arena%", arena.getName());
+ *
+ * Text may use & colour codes, %prefix% and the placeholders you pass in pairs.
+ * A path may be a single string or a list of lines.
+ *
+ * Only API that exists on Spigot, CraftBukkit and Paper is used (no Adventure), so the plugin
+ * runs on all of them. Titles use sendTitle(), the action bar uses the BungeeCord chat API.
+ */
 public final class MessageUtil {
 
     private MessageUtil() {
@@ -26,10 +39,12 @@ public final class MessageUtil {
         }
     }
 
+    /** Sends one already written line (colour codes still work). Used for dynamic output such as /thebridge info. */
     public static void sendText(CommandSender sender, String text) {
         sender.sendMessage(color(text));
     }
 
+    /** Sends a config message to many players at once. */
     public static void sendToAll(Collection<Player> players, String path, String... placeholders) {
         List<String> lines = getLines(path, placeholders);
         for (Player player : players) {
@@ -95,11 +110,11 @@ public final class MessageUtil {
         if (messages.isEmpty()) {
             String message = plugin.getConfig().getString(path);
             if (message == null || message.isEmpty()) {
-                return List.of();
+                return Collections.emptyList();
             }
-            messages = List.of(message);
+            messages = Collections.singletonList(message);
         }
-        return messages.stream().map(line -> replace(line, placeholders)).toList();
+        return messages.stream().map(line -> replace(line, placeholders)).collect(Collectors.toList());
     }
 
     private static String getFirstLine(String path, String... placeholders) {

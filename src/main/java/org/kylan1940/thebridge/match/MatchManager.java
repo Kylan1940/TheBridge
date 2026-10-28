@@ -30,8 +30,25 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
+/**
+ * Runs the matches. This is the class that turns the decisions of Match (the rules)
+ * into things the players see: teleports, messages, equipment, countdowns, respawns.
+ *
+ * Match life cycle (the arena state is shown in capitals):
+ *
+ *   join()                 WAITING     players wait in the lobby
+ *   arena is full          STARTING    countdown, a timer runs once per second
+ *   countdown reaches 0    IN_GAME     teams are assigned, round 1 starts (short freeze first)
+ *   goal / death           IN_GAME     handleGoal() / handleDeath()
+ *   score limit or time    ENDING      endMatch(): results are shown for a few seconds
+ *   players sent back      RESETTING   changed blocks are restored in small batches
+ *   restore finished       WAITING     the arena can be used again
+ *
+ * Everything here runs on the main server thread. Only the database (StatsManager) uses another thread.
+ */
 public class MatchManager {
 
+    /** Result of join(), so the command can show the right message. */
     public enum JoinResult {
         JOINED,
         ALREADY_IN_MATCH,
@@ -39,7 +56,23 @@ public class MatchManager {
         FULL
     }
 
-    private record LastHit(UUID attacker, long timeMillis) {
+    /** Remembers who hit a player last, so a fall into the void can still count as a kill. */
+    private static final class LastHit {
+        private final UUID attacker;
+        private final long timeMillis;
+
+        private LastHit(UUID attacker, long timeMillis) {
+            this.attacker = attacker;
+            this.timeMillis = timeMillis;
+        }
+
+        private UUID attacker() {
+            return attacker;
+        }
+
+        private long timeMillis() {
+            return timeMillis;
+        }
     }
 
     private final TheBridge plugin;
@@ -48,15 +81,20 @@ public class MatchManager {
     private final StatsManager statsManager;
     private final File snapshotFolder;
 
+    /** One match per arena (key = lower case arena name). Exists from the first join until the players are sent back. */
     private final Map<String, Match> matches = new HashMap<>();
+    /** Quick lookup: which match is this player in? */
     private final Map<UUID, Match> playerMatches = new HashMap<>();
     private final Map<UUID, PlayerSnapshot> snapshots = new HashMap<>();
 
+    /** The once-per-second timer of each match (countdown and clock). */
     private final Map<String, BukkitTask> timers = new HashMap<>();
+    /** The delayed task that ends the ENDING phase. */
     private final Map<String, BukkitTask> endingTasks = new HashMap<>();
     private final Map<UUID, BukkitTask> respawnTasks = new HashMap<>();
     private final Map<UUID, LastHit> lastHits = new HashMap<>();
 
+    /** Arenas whose blocks are being restored between two rounds. The round countdown waits for that. */
     private final Set<String> pausedRounds = new HashSet<>();
 
     public MatchManager(TheBridge plugin, ArenaResetter resetter, EquipmentGiver equipmentGiver, StatsManager statsManager) {
@@ -157,6 +195,12 @@ public class MatchManager {
     // Leaving
     // ------------------------------------------------------------------
 
+    /**
+     * Removes a player from their match and gives them their normal state back.
+     * Used for /thebridge leave, for disconnects and for kicks.
+     *
+     * @return false if the player was not in a match
+     */
     public boolean leave(Player player) {
         UUID uuid = player.getUniqueId();
         Match match = playerMatches.remove(uuid);
@@ -179,15 +223,16 @@ public class MatchManager {
         debug(player.getName() + " left arena " + arena.getName());
 
         switch (arena.getState()) {
-            case STARTING -> {
+            case STARTING: {
                 // Someone left during the countdown: the arena is no longer full, so cancel it.
                 if (!match.isReadyToStart()) {
                     stopTimer(match);
                     arena.setState(ArenaState.WAITING);
                     MessageUtil.sendToAll(getOnlinePlayers(match), "messages.countdown-cancelled");
                 }
+                break;
             }
-            case IN_GAME -> {
+            case IN_GAME: {
                 if (!match.isFinished()) {
                     MatchTeam forfeitWinner = match.getForfeitWinner();
                     if (forfeitWinner != null) {
@@ -199,9 +244,11 @@ public class MatchManager {
                         endMatch(match, null, true);
                     }
                 }
+                break;
             }
-            default -> {
+            default: {
                 // WAITING, ENDING: nothing special to do.
+                break;
             }
         }
 
@@ -230,6 +277,12 @@ public class MatchManager {
         }
     }
 
+    /**
+     * Admin command: cancels the match of an arena. A running match ends WITHOUT a winner and
+     * without stats, players are sent back and the blocks are restored.
+     *
+     * @return false if the arena had nothing to stop
+     */
     public boolean stop(Arena arena) {
         Match match = matches.get(key(arena));
         if (match == null) {
@@ -266,9 +319,15 @@ public class MatchManager {
 
     private void tick(Match match) {
         switch (match.getArena().getState()) {
-            case STARTING -> tickStarting(match);
-            case IN_GAME -> tickInGame(match);
-            default -> stopTimer(match);
+            case STARTING:
+                tickStarting(match);
+                break;
+            case IN_GAME:
+                tickInGame(match);
+                break;
+            default:
+                stopTimer(match);
+                break;
         }
     }
 
@@ -361,6 +420,7 @@ public class MatchManager {
         beginRoundCountdown(match);
     }
 
+    /** Sends everybody to their spawn with fresh equipment. */
     private void resetPlayersForRound(Match match) {
         for (Player player : getOnlinePlayers(match)) {
             UUID uuid = player.getUniqueId();
@@ -371,6 +431,7 @@ public class MatchManager {
         }
     }
 
+    /** Teleports one player to the spawn of their team and gives them their equipment. */
     private void spawnPlayer(Match match, Player player) {
         MatchTeam team = match.getTeam(player.getUniqueId());
         Location spawn = LocationUtil.toLocation(match.getArena().getSpawn(team));
@@ -383,6 +444,7 @@ public class MatchManager {
         }
     }
 
+    /** Freezes the round for a few seconds. The timer then counts down and calls startRound(). */
     private void beginRoundCountdown(Match match) {
         match.setCountdown(plugin.getSettings().roundCountdown);
         if (plugin.getSettings().roundCountdown == 0) {
@@ -395,6 +457,7 @@ public class MatchManager {
     // Scoring
     // ------------------------------------------------------------------
 
+    /** Called by the move listener when a player entered the goal they attack. */
     public void handleGoal(Player scorer) {
         Match match = playerMatches.get(scorer.getUniqueId());
         if (match == null) {
@@ -449,6 +512,11 @@ public class MatchManager {
     // Movement (goal detection, void, arena limits)
     // ------------------------------------------------------------------
 
+    /**
+     * Called for every move of a player who is in a match.
+     *
+     * @return true when the move must be cancelled (frozen round, or walking out of the arena)
+     */
     public boolean handleMovement(Player player, Location from, Location to) {
         UUID uuid = player.getUniqueId();
         Match match = playerMatches.get(uuid);
@@ -507,6 +575,7 @@ public class MatchManager {
         lastHits.put(victim.getUniqueId(), new LastHit(attacker.getUniqueId(), System.currentTimeMillis()));
     }
 
+    /** The player that recently hit the victim (inside the kill credit time), or null. */
     private Player findKiller(UUID victim, Match match) {
         LastHit hit = lastHits.get(victim);
         if (hit == null) {
@@ -527,11 +596,17 @@ public class MatchManager {
         return attacker;
     }
 
+    /** Public version for the damage listener (it needs the killer when it turns lethal damage into a death). */
     public Player findKiller(Player victim) {
         Match match = playerMatches.get(victim.getUniqueId());
         return match == null ? null : findKiller(victim.getUniqueId(), match);
     }
 
+    /**
+     * A player died (lethal damage, the void or /kill).
+     * We never show the vanilla death screen: the player waits as a spectator at their spawn,
+     * then respawns with fresh equipment. Nothing is dropped.
+     */
     public void handleDeath(Player victim, Player killer) {
         UUID uuid = victim.getUniqueId();
         Match match = playerMatches.get(uuid);
@@ -595,6 +670,10 @@ public class MatchManager {
         }
     }
 
+    /**
+     * Where a player must respawn if the vanilla death screen could not be avoided (for example /kill):
+     * the lobby before the game, the team spawn during the game. Returns null if the player is not in a match.
+     */
     public Location getRespawnLocation(Player player) {
         Match match = playerMatches.get(player.getUniqueId());
         if (match == null) {
@@ -681,6 +760,7 @@ public class MatchManager {
         }
     }
 
+    /** Runs the console commands from config.yml (rewards.winner-commands / loser-commands). */
     private void giveRewards(Match match, MatchTeam winner) {
         if (winner == null) {
             return;
@@ -696,6 +776,7 @@ public class MatchManager {
         }
     }
 
+    /** After the results screen: send everybody back, then restore the arena. */
     private void finishEnding(Match match) {
         Arena arena = match.getArena();
         String arenaKey = key(arena);
@@ -723,6 +804,7 @@ public class MatchManager {
     // Player state
     // ------------------------------------------------------------------
 
+    /** Puts the player back the way they were before they joined, and removes the snapshot file. */
     private void restorePlayer(Player player) {
         PlayerSnapshot snapshot = snapshots.remove(player.getUniqueId());
         if (snapshot == null) {
@@ -732,6 +814,10 @@ public class MatchManager {
         deleteSnapshotFile(player.getUniqueId());
     }
 
+    /**
+     * Called when a player joins the SERVER. A snapshot file for a player who is not in a match
+     * means the server crashed while they were playing, so they get their things back now.
+     */
     public void recoverAfterCrash(Player player) {
         UUID uuid = player.getUniqueId();
         if (playerMatches.containsKey(uuid)) {
@@ -766,6 +852,10 @@ public class MatchManager {
     // Shutdown
     // ------------------------------------------------------------------
 
+    /**
+     * Called from onDisable. Everything is stopped at once: tasks are cancelled, every player gets
+     * their normal state back and all changed blocks are restored immediately.
+     */
     public void shutdown() {
         for (BukkitTask task : timers.values()) {
             task.cancel();

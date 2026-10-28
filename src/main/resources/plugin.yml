@@ -1,7 +1,7 @@
 name: TheBridge
-version: '${project.version}'
+version: '1.1.0'
 main: org.kylan1940.thebridge.TheBridge
-api-version: '1.21'
+api-version: '1.13'
 author: Kylan1940
 description: A classic Bridge minigame with 1v1 and 2v2 arenas.
 softdepend: [PlaceholderAPI]

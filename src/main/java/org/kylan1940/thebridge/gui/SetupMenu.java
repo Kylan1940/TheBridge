@@ -18,6 +18,7 @@ import org.kylan1940.thebridge.match.MatchTeam;
 import org.kylan1940.thebridge.message.MessageUtil;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -56,7 +57,7 @@ public class SetupMenu implements InventoryHolder {
         this.matchManager = matchManager;
         this.arenaName = arenaName;
         this.viewer = viewer;
-        this.inventory = Bukkit.createInventory(this, SIZE, color("&6Setup: &e" + arenaName));
+        this.inventory = Bukkit.createInventory(this, SIZE, shortTitle(color("&6Setup: &e" + arenaName)));
     }
 
     @Override
@@ -80,7 +81,7 @@ public class SetupMenu implements InventoryHolder {
         }
 
         for (int slot = 0; slot < SIZE; slot++) {
-            inventory.setItem(slot, item(Material.GRAY_STAINED_GLASS_PANE, "&r ", List.of()));
+            inventory.setItem(slot, item(Material.GRAY_STAINED_GLASS_PANE, "&r ", Collections.<String>emptyList()));
         }
 
         boolean editable = arena.getState() == ArenaState.DISABLED;
@@ -122,14 +123,14 @@ public class SetupMenu implements InventoryHolder {
                         "&7Shift: 5 minutes at a time. 0 = use config.yml", lockedLine)));
 
         if (arena.isEnabled()) {
-            inventory.setItem(SLOT_TOGGLE, item(Material.RED_DYE, "&cDisable arena",
+            inventory.setItem(SLOT_TOGGLE, item(Material.RED_WOOL, "&cDisable arena",
                     lines("&7The arena is open. Click to close it.", "&7A running match is cancelled.")));
         } else {
-            inventory.setItem(SLOT_TOGGLE, item(Material.LIME_DYE, "&aEnable arena",
+            inventory.setItem(SLOT_TOGGLE, item(Material.LIME_WOOL, "&aEnable arena",
                     lines("&7The arena is closed. Click to open it.", "&7It only opens when the setup is complete.")));
         }
 
-        inventory.setItem(SLOT_CLOSE, item(Material.BARRIER, "&cClose", List.of()));
+        inventory.setItem(SLOT_CLOSE, item(Material.BARRIER, "&cClose", Collections.<String>emptyList()));
     }
 
     private ItemStack infoItem(Arena arena) {
@@ -185,47 +186,55 @@ public class SetupMenu implements InventoryHolder {
 
         switch (slot) {
             // These save where the player stands, so the menu closes: the player has to walk to the next spot.
-            case SLOT_LOBBY -> {
+            case SLOT_LOBBY: {
                 positionClick(player, "setlobby " + name);
                 return;
             }
-            case SLOT_RED_SPAWN -> {
+            case SLOT_RED_SPAWN: {
                 positionClick(player, "setspawn " + name + " red");
                 return;
             }
-            case SLOT_BLUE_SPAWN -> {
+            case SLOT_BLUE_SPAWN: {
                 positionClick(player, "setspawn " + name + " blue");
                 return;
             }
-            case SLOT_POS1 -> {
+            case SLOT_POS1: {
                 positionClick(player, "pos1");
                 return;
             }
-            case SLOT_POS2 -> {
+            case SLOT_POS2: {
                 positionClick(player, "pos2");
                 return;
             }
 
-            case SLOT_RED_GOAL -> run(player, "setgoal " + name + " red");
-            case SLOT_BLUE_GOAL -> run(player, "setgoal " + name + " blue");
-            case SLOT_BOUNDS -> run(player, "setbounds " + name);
+            case SLOT_RED_GOAL:
+                run(player, "setgoal " + name + " red");
+                break;
+            case SLOT_BLUE_GOAL:
+                run(player, "setgoal " + name + " blue");
+                break;
+            case SLOT_BOUNDS:
+                run(player, "setbounds " + name);
+                break;
 
-            case SLOT_TEAM_SIZE -> {
+            case SLOT_TEAM_SIZE: {
                 int next = arena.getTeamSize() + direction(click);
                 next = Math.max(1, Math.min(plugin.getSettings().maxTeamSize, next));
                 if (direction(click) != 0 && next != arena.getTeamSize()) {
                     run(player, "teamsize " + name + " " + next);
                 }
+                break;
             }
-            case SLOT_SCORE_LIMIT -> {
+            case SLOT_SCORE_LIMIT: {
                 int step = isShift(click) ? 5 : 1;
                 int next = arena.getScoreLimit() + direction(click) * step;
                 next = Math.max(0, Math.min(100, next));
                 if (direction(click) != 0 && next != arena.getScoreLimit()) {
                     run(player, "scorelimit " + name + " " + next);
                 }
+                break;
             }
-            case SLOT_DURATION -> {
+            case SLOT_DURATION: {
                 int step = isShift(click) ? 300 : 30;
                 int next = arena.getDurationSeconds() + direction(click) * step;
                 // 0 means "use config.yml". Anything below 30 seconds is not allowed, so it snaps to 0 or 30.
@@ -238,20 +247,36 @@ public class SetupMenu implements InventoryHolder {
                 if (direction(click) != 0 && next != arena.getDurationSeconds()) {
                     run(player, "duration " + name + " " + next);
                 }
+                break;
             }
 
-            case SLOT_TOGGLE -> run(player, (arena.isEnabled() ? "disable " : "enable ") + name);
-            case SLOT_CLOSE -> {
+            case SLOT_TOGGLE:
+                run(player, (arena.isEnabled() ? "disable " : "enable ") + name);
+                break;
+            case SLOT_CLOSE: {
                 player.closeInventory();
                 return;
             }
-            default -> {
+            default: {
                 return;
             }
         }
 
         // Draw again so the buttons show the new values.
         refresh(player);
+    }
+
+    // Servers before 1.14 refuse an inventory title longer than 32 characters, so a long arena name is cut.
+    private static String shortTitle(String title) {
+        if (title.length() <= 32) {
+            return title;
+        }
+        String cut = title.substring(0, 32);
+        // Do not leave half a colour code ("§" without its letter) at the end.
+        if (cut.endsWith("\u00a7")) {
+            cut = cut.substring(0, 31);
+        }
+        return cut;
     }
 
     private void positionClick(Player player, String command) {

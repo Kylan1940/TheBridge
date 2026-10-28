@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -15,9 +16,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Remembers which blocks changed during a match and what they looked like BEFORE.
+ *
+ * This is how the arena reset works: instead of copying the whole arena, we only keep
+ * the blocks that players actually touched. When the match is over we put those back.
+ *
+ * Block states are stored as text (the Bukkit "block data string", for example
+ * "minecraft:red_terracotta" or "minecraft:air"), so this class needs no Bukkit and
+ * the list can be saved to a file as a crash-recovery journal.
+ *
+ * One tracker belongs to one arena.
+ */
 public class BlockTracker {
 
+    /** Original state of every changed block. The first change wins, later ones never overwrite it. */
     private final Map<BlockKey, String> originals = new LinkedHashMap<>();
+    /** Blocks that are CURRENTLY a player-placed block. Players may only break these. */
     private final Set<BlockKey> placed = new HashSet<>();
 
     private boolean dirty = false;
@@ -69,7 +84,7 @@ public class BlockTracker {
 
         while (iterator.hasNext() && batch.size() < max) {
             Map.Entry<BlockKey, String> entry = iterator.next();
-            batch.add(Map.entry(entry.getKey(), entry.getValue()));
+            batch.add(new AbstractMap.SimpleImmutableEntry<>(entry.getKey(), entry.getValue()));
             placed.remove(entry.getKey());
             iterator.remove();
             dirty = true;
@@ -87,6 +102,12 @@ public class BlockTracker {
     // Journal file (crash recovery)
     // ------------------------------------------------------------------
 
+    /**
+     * Writes all remembered blocks to a file. If the server crashes in the middle of a
+     * match, the next start reads this file and restores the arena.
+     * The file is written to a temporary name first, so a crash while saving
+     * never leaves a half written journal behind.
+     */
     public void saveTo(File file) throws IOException {
         File parent = file.getParentFile();
         if (parent != null) {
@@ -106,6 +127,7 @@ public class BlockTracker {
         dirty = false;
     }
 
+    /** Reads a journal written by saveTo(). Broken lines are skipped. */
     public static BlockTracker loadFrom(File file) throws IOException {
         BlockTracker tracker = new BlockTracker();
 

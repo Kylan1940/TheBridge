@@ -7,6 +7,7 @@ import org.bukkit.block.Block;
 import org.kylan1940.thebridge.arena.Point;
 import org.kylan1940.thebridge.reset.BlockKey;
 
+/** Converts between the plugin's plain data classes and Bukkit's Location and Block. */
 public final class LocationUtil {
 
     private LocationUtil() {

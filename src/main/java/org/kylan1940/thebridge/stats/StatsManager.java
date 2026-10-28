@@ -18,6 +18,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
+/**
+ * Saves and loads statistics WITHOUT blocking the main server thread.
+ *
+ * All database work runs on one background thread (the same idea as the EventQueue in
+ * ServerTimeline). Because there is only one thread, two database operations never run at
+ * the same time, so SQLite never reports "database is locked".
+ *
+ * A database problem is only logged. It never stops a match or crashes the server.
+ */
 public class StatsManager {
 
     private final TheBridge plugin;
@@ -29,6 +38,7 @@ public class StatsManager {
         this.plugin = plugin;
     }
 
+    /** Opens the database in the background. Does nothing when stats are switched off in config.yml. */
     public void start() {
         if (!plugin.getSettings().statsEnabled) {
             plugin.getLogger().info("Statistics are disabled in config.yml.");
@@ -158,6 +168,7 @@ public class StatsManager {
         });
     }
 
+    /** Waits (max 10 seconds) for pending saves, then closes the database. Called from onDisable. */
     public void shutdown() {
         if (executor == null) {
             return;

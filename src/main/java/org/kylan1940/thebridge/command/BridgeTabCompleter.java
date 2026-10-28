@@ -9,16 +9,19 @@ import org.kylan1940.thebridge.TheBridge;
 import org.kylan1940.thebridge.arena.ArenaManager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
 public class BridgeTabCompleter implements TabCompleter {
 
-    private static final Set<String> ARENA_COMMANDS = Set.of(
+    private static final Set<String> ARENA_COMMANDS = new HashSet<>(Arrays.asList(
             "join", "setup", "delete", "setlobby", "setspawn", "setgoal", "setbounds", "teamsize",
             "scorelimit", "duration", "enable", "disable", "stop", "info"
-    );
+    ));
 
     private final TheBridge plugin;
     private final ArenaManager arenaManager;
@@ -47,7 +50,7 @@ public class BridgeTabCompleter implements TabCompleter {
         String sub = args[0].toLowerCase(Locale.ROOT);
         boolean isAdminCommand = BridgeCommand.ADMIN_COMMANDS.contains(sub);
         if (isAdminCommand && !sender.hasPermission("thebridge.admin")) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         if (args.length == 2) {
@@ -65,7 +68,7 @@ public class BridgeTabCompleter implements TabCompleter {
 
         if (args.length == 3) {
             if (sub.equals("setspawn") || sub.equals("setgoal")) {
-                return filter(List.of("red", "blue"), args[2]);
+                return filter(Arrays.asList("red", "blue"), args[2]);
             }
             if (sub.equals("teamsize")) {
                 List<String> sizes = new ArrayList<>();
@@ -76,7 +79,7 @@ public class BridgeTabCompleter implements TabCompleter {
             }
         }
 
-        return List.of();
+        return Collections.emptyList();
     }
 
     private List<String> filter(List<String> options, String input) {
