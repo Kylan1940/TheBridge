@@ -1,6 +1,12 @@
 # Description
 TheBridge is a Minecraft Java Server minigame plugin. Two teams (1v1 or 2v2) fight on bridges over the void. Build blocks toward the enemy, fight, and score by entering the enemy goal. First team to the score limit wins. If you have a question, please make an [issue](https://github.com/Kylan1940/TheBridge/issues/new).
 
+# Changelogs [1.1.0]
+>- Support 1.13 to 1.21 (now support 1.13 to 26.x)
+>- Added tutorial video
+>- Changed Java version
+>- Changed configuration
+
 # Features
 >- 1v1 and 2v2 (any team size up to `match.max-team-size`)
 >- Multiple arenas, each saved in its own file
