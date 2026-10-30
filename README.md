@@ -30,11 +30,11 @@ TheBridge is a Minecraft Java Server minigame plugin. Two teams (1v1 or 2v2) fig
 
 # Compatibility
 
-| Server software                         | Expected to work? | Notes                                                                                   |
-|-----------------------------------------|-------------------|-----------------------------------------------------------------------------------------|
-| Paper, Purpur, Pufferfish, Leaves       | Yes               | They contain the Spigot API.                                                            |
-| Spigot, CraftBukkit                     | Yes               | CraftBukkit has the same Bukkit API. Spigot-only parts used: the BungeeCord chat API for the action bar and `player.spigot().respawn()`. A pure CraftBukkit build without the Spigot additions would lack these two. |
-| Folia                                   | **No**            | TheBridge uses the normal Bukkit scheduler and does not declare `folia-supported`.      |
+| Server software                                 | Expected to work? | Notes                                                                                   |
+|-------------------------------------------------|-------------------|-----------------------------------------------------------------------------------------|
+| Paper, Purpur, Pufferfish, Leaves (1.13 - 1.21) | Yes               | They contain the Spigot API.                                                            |
+| Spigot, CraftBukkit (1.13 - 1.21)               | Yes               | CraftBukkit has the same Bukkit API. Spigot-only parts used: the BungeeCord chat API for the action bar and `player.spigot().respawn()`. A pure CraftBukkit build without the Spigot additions would lack these two. |
+| Folia                                           | **No**            | TheBridge uses the normal Bukkit scheduler and does not declare `folia-supported`.      |
 
 - "Expected" means the code only calls API that exists there. **Only some of these servers have been tested**. Please report what works for you.
 
