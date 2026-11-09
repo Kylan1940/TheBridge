@@ -25,7 +25,7 @@ This branch is for TheBridge on Minecraft 1.8 until 1.12. [Click Here](https://g
 # Download
 | Version      | JAR                                                                                                   | Minecraft Support | Software Support                                       |
 |--------------|-------------------------------------------------------------------------------------------------------|-------------------|--------------------------------------------------------|
-| 1.1.0-legacy | [DOWNLOAD](https://github.com/Kylan1940/TheBridge/releases/download/1.2.0/TheBridge-1.1.0-legacy.jar) | 1.8.8 - 1.12      | Paper, Spigot, CraftBukkit, Purpur, Pufferfish, Leaves |
+| 1.1.0-legacy | [DOWNLOAD]([https://github.com/Kylan1940/TheBridge/releases/download/1.2.0/TheBridge-1.1.0-legacy.jar](https://github.com/Kylan1940/TheBridge/releases/download/1.1.0-legacy/TheBridge-1.1.0-legacy.jar)) | 1.8.8 - 1.12      | Paper, Spigot, CraftBukkit, Purpur, Pufferfish, Leaves |
 | 1.1.0        | [DOWNLOAD](https://github.com/Kylan1940/TheBridge/releases/download/1.1.0/TheBridge-1.1.0.jar)        | 1.13 - 26.0+      | Paper, Spigot, CraftBukkit, Purpur, Pufferfish, Leaves |
 | 1.0.0        | [DOWNLOAD](https://github.com/Kylan1940/TheBridge/releases/download/1.0.0/TheBridge-1.0.0.jar)        | 1.21 - 26.0+      | Paper, Spigot, CraftBukkit, Purpur, Pufferfish, Leaves |
 
