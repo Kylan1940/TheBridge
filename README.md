@@ -1,6 +1,9 @@
 # Description
 TheBridge is a Minecraft Java Server minigame plugin. Two teams (1v1 or 2v2) fight on bridges over the void. Build blocks toward the enemy, fight, and score by entering the enemy goal. First team to the score limit wins. If you have a question, please make an [issue](https://github.com/Kylan1940/TheBridge/issues/new).
 
+# Legacy
+This branch is for TheBridge on Minecraft 1.13 and above (up to 26.x). [Click Here](https://github.com/Kylan1940/TheBridge/tree/legacy) if you need the legacy version (1.8 - 1.12).
+
 # Changelogs [1.1.0]
 >- Support 1.13 to 1.21 (now support 1.13 to 26.x)
 >- Added tutorial video
@@ -21,6 +24,13 @@ TheBridge is a Minecraft Java Server minigame plugin. Two teams (1v1 or 2v2) fig
 >- Titles, action bar, sounds, optional console-command rewards
 >- Runs on Spigot, CraftBukkit, Paper and Paper forks
 >- Permissions and tab completion
+
+# Download
+| Version      | JAR                                                                                                            | Minecraft Support  | Software Support                                       |
+|--------------|----------------------------------------------------------------------------------------------------------------|--------------------|--------------------------------------------------------|
+| 1.1.0-legacy | [DOWNLOAD](https://github.com/Kylan1940/TheBridge/releases/download/1.1.0-legacy/TheBridge-1.1.0-legacy.jar)   | 1.8.8 - 1.12       | Paper, Spigot, CraftBukkit, Purpur, Pufferfish, Leaves |
+| 1.1.0        | [DOWNLOAD](https://github.com/Kylan1940/TheBridge/releases/download/1.1.0/TheBridge-1.1.0.jar)                 | 1.13 - 26.0+       | Paper, Spigot, CraftBukkit, Purpur, Pufferfish, Leaves |
+| 1.0.0        | [DOWNLOAD](https://github.com/Kylan1940/TheBridge/releases/download/1.0.0/TheBridge-1.0.0.jar)                 | 1.21 - 26.0+       | Paper, Spigot, CraftBukkit, Purpur, Pufferfish, Leaves |
 
 # Installation
 1. Download the plugin jar.
