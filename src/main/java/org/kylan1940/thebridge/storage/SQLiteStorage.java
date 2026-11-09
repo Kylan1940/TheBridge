@@ -31,7 +31,18 @@ public class SQLiteStorage implements Storage {
         this.databaseUrl = "jdbc:sqlite:" + databaseFile.getAbsolutePath();
     }
 
+    // The SQLite driver that comes with old servers (1.8 to 1.12) does not register itself with Java, so
+    // DriverManager says "No suitable driver". Loading the driver class by name registers it.
+    private static void loadDriver() throws SQLException {
+        try {
+            Class.forName("org.sqlite.JDBC");
+        } catch (ClassNotFoundException exception) {
+            throw new SQLException("The SQLite driver (org.sqlite.JDBC) is not part of this server", exception);
+        }
+    }
+
     private Connection getConnection() throws SQLException {
+        loadDriver();
         Connection connection = DriverManager.getConnection(databaseUrl);
         // If two operations ever overlap, wait up to 5 seconds instead of failing at once.
         try (Statement statement = connection.createStatement()) {

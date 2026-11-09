@@ -91,9 +91,9 @@ public class SetupMenu implements InventoryHolder {
 
         inventory.setItem(SLOT_LOBBY, item(Material.COMPASS, "&eLobby",
                 lines("&7Click to set the lobby where you stand.", status(arena.getLobby() != null), lockedLine)));
-        inventory.setItem(SLOT_RED_SPAWN, item(Material.BED, 14, "&cRed spawn",
+        inventory.setItem(SLOT_RED_SPAWN, item(Material.WOOL, 14, "&cRed spawn",
                 lines("&7Click to set the red spawn where you stand.", status(arena.getSpawn(MatchTeam.RED) != null), lockedLine)));
-        inventory.setItem(SLOT_BLUE_SPAWN, item(Material.BED, 11, "&9Blue spawn",
+        inventory.setItem(SLOT_BLUE_SPAWN, item(Material.WOOL, 11, "&9Blue spawn",
                 lines("&7Click to set the blue spawn where you stand.", status(arena.getSpawn(MatchTeam.BLUE) != null), lockedLine)));
 
         // The goals and the bounds use the box between position 1 and position 2.
